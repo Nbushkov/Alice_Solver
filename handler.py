@@ -208,7 +208,7 @@ class Processing:
         if 'скобка' in self.equation:
             brace = '(' if is_left else ')'
             self.equation = self.equation.replace('скобка', brace, 1).strip()
-            self.equation = self.brace_placement(self.equation, not is_left)
+            self.brace_placement(not is_left)
 
     # перенос в одну часть (приравнивание к 0)
     def move(self):
