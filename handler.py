@@ -29,8 +29,12 @@ REPLACE_IN = {
     'куб':'**3',
     'в степени':'**',
     'степени':'**',
-    'открыть скобку':'(',
-    'закрыть скобку':')',
+    'скобки':'скобка',
+    'скобку':'скобка',
+    'открыть скобка':'(',
+    'закрыть скобка':')',
+    'скобка открыть':'(',
+    'скобка закрыть':')',
     'левая скобка':'(',
     'правая скобка':')',
     'корень':'sqrt',
@@ -276,14 +280,24 @@ def find_replace_multi(string, dictionary, use_word = False):
 
     return str(string)
 
+# Расстановка скобок без вложенности
+def brace_placement(str_in, is_left=True):
+    if 'скобка' in str_in:
+        brace = '(' if is_left else ')'
+        str_in = str_in.replace('скобка', brace, 1).strip()
+        str_in = brace_placement(str_in, not is_left)
+    return str_in
+
 # Первичная подготовка текста запроса
 def prepare_in(str_in):
     # Замена слов в тексте на переменные и цифры
     str_in = find_replace_multi(str_in, REPLACE_DIGITS, True)
     str_in = find_replace_multi(str_in, REPLACE_IN)
+    # ставим скобки если остались
+    str_in = brace_placement(str_in)
     # добавляем умножение
     str_in = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', str_in)
-    str_in = re.sub('\)\s*\(', ')*(', str_in)
+    str_in = re.sub(r'\)\s*\(', r')*(', str_in)
 
     return str_in
 
@@ -343,6 +357,7 @@ def prepare_out(an_dic):
 
 if __name__ == '__main__':
     equation = ' '.join(sys.argv[1:])
-    res = handle_solve(equation)
+    res = prepare_in(equation)
+    #res = handle_solve(equation)
     print(res)
   
