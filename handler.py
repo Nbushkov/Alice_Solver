@@ -12,6 +12,7 @@ REPLACE_DIGITS = {
 }
 
 REPLACE_IN = {
+    'уравнение':'',
     'икс':'x', 'игрек':'y', 
     'плюс':'+', 'минус':'-', 'умножить':'*',
     '−':'-',
@@ -81,7 +82,7 @@ REPLACE_TTS = {
     'y':'игрек',
     'pi':'пи',
     'E':'е',
-    'I':'мнимая единица',
+    'I':'число и',
     '\(':' открыть скобку ',
     '\)':' закрыть скобку ',
     '\n':' - - ',
@@ -92,6 +93,149 @@ HELP_TEXTS = {
     'вычисли':['0.5(0.76-0.06)', '2^5*sqrt(16)'],
     'упрости':['(2x-3y)(3y-2x)-12xy'],
 }
+# Проверка на float
+def is_number_float(s):
+    try:
+        float(s)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+# Основной класс обработки алгебраического выражения        
+class Processing:
+    def __init__(self, equation):
+        # определяем что делать по первому слову в команде
+        parts = equation.split(' ', 1)
+        self.first_word = parts[0]
+        self.equation = parts[1] if len(parts) > 1 else ''
+               
+    # Главный обработчик
+    def process(self):
+        # Первичная подготовка текста запроса
+        # Замена слов в тексте на переменные и цифры
+        self.equation = self.find_replace_multi(self.equation, REPLACE_DIGITS, True)
+        self.equation = self.find_replace_multi(self.equation, REPLACE_IN)
+        # ставим скобки если остались
+        self.brace_placement()
+        # добавляем умножение
+        self.equation = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', self.equation)
+        self.equation = re.sub(r'\)\s*\(', r')*(', self.equation)
+
+        if self.first_word in ['реши', 'решить']:
+            self._solve()
+        elif self.first_word in ['вычисли', 'вычислить']:
+            self._calculate()
+        elif self.first_word in ['упрости', 'упростить']:
+            self._simplify()
+        else: 
+            self.answer = False
+
+    # Функция для решения уравнения
+    def _solve(self):
+        # Проверка на ошибки
+        err = 0
+        # проверка равенства 
+        if self.check_equality() > 1:
+            err = 3
+        # проверка соответствия скобок
+        if not self.check_pairing():
+            err = 4
+        # проверка числа перемнных  
+        var_num = self.check_unknown()
+        if var_num == 0:
+            err = 1
+        if var_num == 2:
+            err = 2
+        # сообщаем об ошибке
+        if 0 != err:
+            self.answer = random.choice(ERRORS[err])
+
+        if self.check_equality() == 1:
+            self.move()
+        # пытаемся решить
+        try:
+            x, y = symbols('x,y')
+            solution = solve(self.equation, dict=True)
+        except Exception:
+            self.answer = 'Ошибка в уравнении'
+        else:
+            if not solution:
+                self.answer = 'Нет решений'
+            else:
+                res = []
+                for sol in solution:
+                    for key, value in sol.items():
+                        # проверка если слишком длинный ответ, вычисляем
+                        if len(str(value)) > 50:
+                            ans = Processing(str(value))
+                            ans._calculate()
+                            res.append(str(key) + '=' + ans.answer)
+                        else:
+                            res.append(str(key) + '=' + str(value))
+                self.answer = 'Ответ %s' % (' или '.join(res))
+
+
+    # Функция вычисления выражения
+    def _calculate(self):
+        try:
+            expr = sympify(self.equation)
+            self.answer = expr.evalf()
+        except Exception:
+            self.answer = 'Ошибка в выражении'
+        # Округляем если число
+        if is_number_float(self.answer):
+            self.answer = str(round(float(self.answer), 3))
+
+    # Функция упрощения выражения
+    def _simplify(self):
+        try:
+            self.answer = simplify(self.equation)
+        except Exception:
+            self.answer = 'Ошибка в выражении'
+
+    # Функция замены по словарю 
+    def find_replace_multi(self, string, dictionary, use_word = False):
+        for item in dictionary.keys():
+            if use_word:
+                string = re.sub(r'\b{}\b'.format(item), r'{}'.format(dictionary[item]), string)
+            else:
+                string = re.sub(item, dictionary[item], string)
+
+        return str(string)
+
+    # Расстановка скобок без вложенности
+    def brace_placement(self, is_left=True):
+        if 'скобка' in self.equation:
+            brace = '(' if is_left else ')'
+            self.equation = self.equation.replace('скобка', brace, 1).strip()
+            self.equation = self.brace_placement(self.equation, not is_left)
+
+    # перенос в одну часть (приравнивание к 0)
+    def move(self):
+        parts = self.equation.split('=')
+        self.equation = parts[0].strip() + '-(' + parts[1].strip() + ')'
+
+    # Определение числа вхождений равенства
+    def check_equality(self):
+        return self.equation.count("=")
+    # Проверка парности скобок
+    def check_pairing(self):
+        return self.equation.count('(') == self.equation.count(')')
+    # Проверка наличия неизвестной x или y
+    def check_unknown(self):
+        # проверка наличия x
+        x_in = 'x' in self.equation
+        # проверка наличия y
+        y_in = 'y' in self.equation
+        # сразу оба
+        if x_in and y_in:
+            return 2
+        # нет ни x ни y
+        if not (x_in or y_in): 
+            return 0
+        # есть одна неизвестная
+        return 1
+
              
 # Функция для непосредственной обработки диалога.
 def handle_dialog(req, res, user_storage):
@@ -117,16 +261,16 @@ def handle_dialog(req, res, user_storage):
     # Флаг добавления в логи
     user_storage['to_log'] = True
     # данные о команде, убираем лишнее
-    user_command = req.command.lower().replace('спроси знайка ответить', '').replace('спроси знайка ответит', '').strip()
-    # определяем что делать по первому слову в команде
-    first_word = user_command.split(' ', 1)[0]
+    user_command = req.command.lower().replace('спроси знайка ответит', '').strip()
+    # Подготавливаем класс обработчик
+    process = Processing(user_command)
     # данные о исходном сообщении
     user_message = req.original.lower().strip()
     # ответ на некорректный запрос
     default_answer = 'Я понимаю фразы начинающиеся с ключевых слов: ' + ', '.join(HELP_TEXTS) + \
     ', дополненные алгебраическим выражением.\n'
 
-    if not first_word:
+    if not process.first_word:
         user_answer = 'Привет!\nЯ могу решать уравнения с одной неизвестной x или y,'+ \
         ' вычислять или упрощать выражения.\nПриступим?'
         res.set_text(user_answer)
@@ -141,7 +285,7 @@ def handle_dialog(req, res, user_storage):
         return res, user_storage
 
     # если похвалили
-    if first_word in [
+    if process.first_word in [
         'круто',
         'класс',
         'верно',
@@ -162,7 +306,7 @@ def handle_dialog(req, res, user_storage):
         return res, user_storage
 
     # примеры
-    if first_word == 'пример':
+    if process.first_word == 'пример':
         s = user_command.split(' ', 2)
         if len(s) == 1 or s[1] not in HELP_TEXTS:
             user_answer = "Укажите ключевое слово для примера: "+', '.join(HELP_TEXTS)
@@ -174,7 +318,7 @@ def handle_dialog(req, res, user_storage):
         res.set_buttons(user_storage['suggests'])
         return res, user_storage    
     
-    if first_word in [
+    if process.first_word in [
         'хватит',
         'стоп',
         'пока'
@@ -183,181 +327,26 @@ def handle_dialog(req, res, user_storage):
         res.set_text('Приходите ещё, порешаем!')
         res.end()
         return res, user_storage
-
-    # Убираем первое слово из команды
-    user_command = user_command.replace(first_word, '').strip()
-    user_message = user_message.replace(first_word, '').strip()
+    # Обрабатываем другие запросы
+    process.process()
     
-    if first_word in ['реши', 'решить']:
-        # Решаем уравнение
-        user_command = user_command.replace('уравнение', '').strip()
-        user_answer = handle_solve(user_command)
-        # Если ошибка попробуем с исходным сообщением
-        if user_answer.startswith('Ошибка'):
-            user_message = user_message.replace('уравнение', '').strip()
-            user_answer = handle_solve(user_message)
+    # Если ошибка попробуем с исходным сообщением
+    if process.answer.startswith('Ошибка'):
+        process = Processing(user_message)
+        process.process()
 
-    elif first_word in ['вычисли', 'вычислить']:
-        # Вычисляем
-        user_answer = handle_calculate(user_command)
-        # Если ошибка попробуем с исходным сообщением
-        if user_answer.startswith('Ошибка'):
-            user_answer = handle_calculate(user_message)
-
-    elif first_word in ['упрости', 'упростить']:
-        # Упрощаем
-        user_answer = handle_simplify(user_command)
-        # Если ошибка попробуем с исходным сообщением
-        if user_answer.startswith('Ошибка'):
-            user_answer = handle_simplify(user_message)
-    else:
-        user_answer = default_answer
+    user_answer = process.answer if process.answer else default_answer
 
     res.set_text(user_answer)
-    res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
+    res.set_tts(process.find_replace_multi(user_answer, REPLACE_TTS))
     res.set_buttons(user_storage['suggests'])
 
     return res, user_storage
 
-# Функция для решения уравнения
-def handle_solve(input_str):
-    # Подготавливаем выражение
-    equation = prepare_in(input_str)
-    # Проверка на ошибки
-    err = check(equation)
-    if 0 != err:
-        return random.choice(ERRORS[err])
-
-    if equation.count("=") == 1:
-        equation = move(equation)
-    # пытаемся решить
-    try:
-        solution = peq(equation)
-    except Exception:
-        out_str = 'Ошибка в уравнении'
-    else:
-        if not solution:
-            out_str = 'Нет решений'
-        else:
-            out_str = 'Ответ %s' % (answer(solution))
-
-    return out_str
-
-# Функция вычисления выражения
-def handle_calculate(input_str):
-    # Подготавливаем выражение
-    equation = prepare_in(input_str)
-    try:
-        expr = sympify(equation)
-        out_str = expr.evalf()
-    except Exception:
-        out_str = 'Ошибка в выражении'
-    # Округляем если число
-    if is_number_float(out_str):
-        out_str = round(float(out_str), 3)
-
-    return str(out_str)
-
-# Функция упрощения выражения
-def handle_simplify(input_str):
-    # Подготавливаем выражение
-    equation = prepare_in(input_str)
-    try:
-        out_str = simplify(equation)
-    except Exception:
-        out_str = 'Ошибка в выражении'
-
-    return str(out_str)
-
-
-# Функция замены по словарю 
-def find_replace_multi(string, dictionary, use_word = False):
-    for item in dictionary.keys():
-        if use_word:
-            string = re.sub(r'\b{}\b'.format(item), r'{}'.format(dictionary[item]), string)
-        else:
-            string = re.sub(item, dictionary[item], string)
-
-    return str(string)
-
-# Расстановка скобок без вложенности
-def brace_placement(str_in, is_left=True):
-    if 'скобка' in str_in:
-        brace = '(' if is_left else ')'
-        str_in = str_in.replace('скобка', brace, 1).strip()
-        str_in = brace_placement(str_in, not is_left)
-    return str_in
-
-# Первичная подготовка текста запроса
-def prepare_in(str_in):
-    # Замена слов в тексте на переменные и цифры
-    str_in = find_replace_multi(str_in, REPLACE_DIGITS, True)
-    str_in = find_replace_multi(str_in, REPLACE_IN)
-    # ставим скобки если остались
-    str_in = brace_placement(str_in)
-    # добавляем умножение
-    str_in = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', str_in)
-    str_in = re.sub(r'\)\s*\(', r')*(', str_in)
-
-    return str_in
-
-# перенос в одну часть (приравнивание к 0)
-def move(str_in):
-    parts = str_in.split('=')
-    return parts[0].strip() + '-(' + parts[1].strip() + ')'
-
-# Проверка корректности уравнения
-def check(str_in):
-    # проверка  числа вхождений равенства
-    eq_num = str_in.count("=")
-    if eq_num > 1:
-        return 3
-    # проверка соответствия скобок
-    if str_in.count('(') != str_in.count(')'):
-        return 4
-    # проверка наличия x
-    x_in = 'x' in str_in
-    # проверка наличия y
-    y_in = 'y' in str_in
-    # сразу оба
-    if x_in and y_in:
-        return 2
-    # нет ни x ни y
-    if not (x_in or y_in): 
-        return 1
-
-    return 0
-
-# Решатель уравнения s
-def peq(s):
-    x, y = symbols('x,y')
-    return solve(s, dict=True)
-
-# Подготовка ответа
-def answer(an_list):
-    return  ' или '.join(map(prepare_out, an_list)) 
-
-def is_number_float(s):
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
-
-# Подготовка текста ответа
-def prepare_out(an_dic):
-    for key, value in an_dic.items():
-        # проверка если слишком длинный ответ, вычисляем
-        if len(str(value)) > 50:
-            res = str(key) + '=' + handle_calculate(str(value)) 
-        else:
-            res = str(key) + '=' + str(value)  
-    
-    return res
 
 if __name__ == '__main__':
     equation = ' '.join(sys.argv[1:])
-    res = prepare_in(equation)
-    #res = handle_solve(equation)
-    print(res)
+    res = Processing(equation)
+    res.process()
+    print(res.answer)
   
