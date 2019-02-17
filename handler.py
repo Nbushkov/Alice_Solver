@@ -88,6 +88,8 @@ REPLACE_TTS = {
     '\^':' в степени ',
     '\*':' умножить на ',
     '-':' минус ',
+    'acos':'арккосинус',
+    'asin':'арксинус',
     'cos':'косинус',
     'sin':'синус',
     'cot':'котангенс',
@@ -95,8 +97,6 @@ REPLACE_TTS = {
     'log':'логарифм',
     'exp':'экспонента',
     'abs':'модуль',
-    'acos':'арккосинус',
-    'asin':'арксинус',
     'x':'икс',
     'y':'игрек',
     'pi':'пи',
@@ -381,5 +381,5 @@ if __name__ == '__main__':
     res = Processing(equation)
     res.process()
     user_answer = str(res.answer if res.answer else 'default_answer')
-    print(user_answer)
+    print(res.find_replace_multi(user_answer, REPLACE_TTS))
   
