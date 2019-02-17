@@ -189,27 +189,37 @@ class Processing:
                             ans._calculate()
                             res.append(str(key) + '=' + ans.answer)
                         else:
+                            # Округляем если целое
+                            if is_number_int(value):
+                                value = int(value)
                             res.append(str(key) + '=' + str(value))
                 self.answer = 'Ответ %s' % (' или '.join(res))
 
 
     # Функция вычисления выражения
     def _calculate(self):
-        try:
-            self.answer = sympify(self.equation).evalf(4)
-            print (isinstance(self.answer, int))
-        except Exception:
-            self.answer = 'Ошибка в выражении'
-        # Округляем если целое
-        if is_number_int(self.answer):
-            self.answer = int(self.answer)
+        # проверка равенства 
+        if self.check_equality() > 0:
+            self.answer = 'Уравнения я могу решать а не вычислять'
+        else:    
+            try:
+                self.answer = sympify(self.equation).evalf(4)
+            except Exception:
+                self.answer = 'Ошибка в выражении'
+            # Округляем если целое
+            if is_number_int(self.answer):
+                self.answer = int(self.answer)
 
     # Функция упрощения выражения
     def _simplify(self):
-        try:
-            self.answer = simplify(self.equation)
-        except Exception:
-            self.answer = 'Ошибка в выражении'
+        # проверка равенства 
+        if self.check_equality() > 0:
+            self.answer = 'Уравнения я могу решать а не упрощать'
+        else:    
+            try:
+                self.answer = simplify(self.equation)
+            except Exception:
+                self.answer = 'Ошибка в выражении'
 
     # Функция замены по словарю 
     def find_replace_multi(self, string, dictionary, use_word = False):
@@ -368,5 +378,4 @@ if __name__ == '__main__':
     res.process()
     user_answer = str(res.answer if res.answer else 'default_answer')
     print(user_answer)
-    print(res.find_replace_multi(user_answer, REPLACE_TTS))
   
