@@ -30,18 +30,11 @@ REPLACE_IN = {
     'куб':'**3',
     'в степени':'**',
     'степени':'**',
-    'скобки':'скобка',
-    'скобку':'скобка',
-    'открыть скобка':'(',
-    'закрыть скобка':')',
-    'скобка открыть':'(',
-    'скобка закрыть':')',
-    'левая скобка':'(',
-    'правая скобка':')',
     'корень':'sqrt',
     ' факториал':'!',
     'из':'',
     'на':'',
+    'модуль':'abs',
     'косинус':'cos',
     'синус':'sin',
     'котангенс':'cot',
@@ -53,6 +46,28 @@ REPLACE_IN = {
     'число е':'E', 
     'пи':'pi',
     'е':'E', 
+}
+
+REPLACE_BRACE = {
+    'открывается':'открыть',
+    'закрывается':'закрыть',
+    'открылась':'открыть',
+    'закрылась':'закрыть',
+    'открываем':'открыть',
+    'закрываем':'закрыть',
+    'открыли':'открыть',
+    'закрыли':'закрыть',
+    'скобки':'скобка',
+    'скобку':'скобка',
+    'скобочка':'скобка',
+    'скобочки':'скобка',
+    'скобочку':'скобка',
+    'открыть скобка':'(',
+    'закрыть скобка':')',
+    'скобка открыть':'(',
+    'скобка закрыть':')',
+    'левая скобка':'(',
+    'правая скобка':')',
 }
 
 ERRORS = {
@@ -72,13 +87,14 @@ REPLACE_TTS = {
     '\*\*':' в степени ',
     '\^':' в степени ',
     '\*':' умножить на ',
-    '-':'минус',
+    '-':' минус ',
     'cos':'косинус',
     'sin':'синус',
     'cot':'котангенс',
     'tan':'тангенс',
     'log':'логарифм',
     'exp':'экспонента',
+    'abs':'модуль',
     'x':'икс',
     'y':'игрек',
     'pi':'пи',
@@ -94,11 +110,11 @@ HELP_TEXTS = {
     'вычисли':['0.5(0.76-0.06)', '2^5*sqrt(16)'],
     'упрости':['(2x-3y)(3y-2x)-12xy'],
 }
-# Проверка на float
-def is_number_float(s):
+# Проверка на int
+def is_number_int(s):
     try:
-        float(s)
-        return True
+        int(s)
+        return int(s) == s
     except (TypeError, ValueError):
         return False
 
@@ -115,6 +131,7 @@ class Processing:
         # Первичная подготовка текста запроса
         # Замена слов в тексте на переменные и цифры
         self.equation = self.find_replace_multi(self.equation, REPLACE_DIGITS, True)
+        self.equation = self.find_replace_multi(self.equation, REPLACE_BRACE)
         self.equation = self.find_replace_multi(self.equation, REPLACE_IN)
         # ставим скобки если остались
         self.brace_placement()
@@ -179,13 +196,13 @@ class Processing:
     # Функция вычисления выражения
     def _calculate(self):
         try:
-            expr = sympify(self.equation)
-            self.answer = expr.evalf()
+            self.answer = sympify(self.equation).evalf(4)
+            print (isinstance(self.answer, int))
         except Exception:
             self.answer = 'Ошибка в выражении'
-        # Округляем если число
-        if is_number_float(self.answer):
-            self.answer = str(round(float(self.answer), 3))
+        # Округляем если целое
+        if is_number_int(self.answer):
+            self.answer = int(self.answer)
 
     # Функция упрощения выражения
     def _simplify(self):
