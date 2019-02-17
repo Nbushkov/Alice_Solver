@@ -274,7 +274,7 @@ def handle_dialog(req, res, user_storage):
         user_answer = 'Привет!\nЯ могу решать уравнения с одной неизвестной x или y,'+ \
         ' вычислять или упрощать выражения.\nПриступим?'
         res.set_text(user_answer)
-        res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
+        res.set_tts(process.find_replace_multi(user_answer, REPLACE_TTS))
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
         
@@ -314,7 +314,7 @@ def handle_dialog(req, res, user_storage):
             user_answer = s[1]+' '+' или '.join(HELP_TEXTS[s[1]])
 
         res.set_text(user_answer)
-        res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
+        res.set_tts(process.find_replace_multi(user_answer, REPLACE_TTS))
         res.set_buttons(user_storage['suggests'])
         return res, user_storage    
     
