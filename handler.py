@@ -95,6 +95,8 @@ REPLACE_TTS = {
     'log':'логарифм',
     'exp':'экспонента',
     'abs':'модуль',
+    'acos':'арккосинус',
+    'asin':'арксинус',
     'x':'икс',
     'y':'игрек',
     'pi':'пи',
@@ -174,6 +176,8 @@ class Processing:
         try:
             x, y = symbols('x,y')
             solution = solve(self.equation, dict=True)
+        except NotImplementedError:
+            self.answer = 'Такие уравнения я пока решать не умею'
         except Exception:
             self.answer = 'Ошибка в уравнении'
         else:
