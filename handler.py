@@ -79,6 +79,7 @@ REPLACE_TTS = {
     'tan':'тангенс',
     'log':'логарифм',
     'exp':'экспонента',
+    'x':'икс',
     'y':'игрек',
     'pi':'пи',
     'E':'е',
@@ -335,7 +336,7 @@ def handle_dialog(req, res, user_storage):
         process = Processing(user_message)
         process.process()
 
-    user_answer = process.answer if process.answer else default_answer
+    user_answer = str(process.answer if process.answer else default_answer)
 
     res.set_text(user_answer)
     res.set_tts(process.find_replace_multi(user_answer, REPLACE_TTS))
@@ -348,5 +349,7 @@ if __name__ == '__main__':
     equation = ' '.join(sys.argv[1:])
     res = Processing(equation)
     res.process()
-    print(res.answer)
+    user_answer = str(res.answer if res.answer else 'default_answer')
+    print(user_answer)
+    print(res.find_replace_multi(user_answer, REPLACE_TTS))
   
