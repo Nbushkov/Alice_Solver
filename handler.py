@@ -189,9 +189,9 @@ class Processing:
                     for key, value in sol.items():
                         # проверка если слишком длинный ответ, вычисляем
                         if len(str(value)) > 50:
-                            ans = Processing(str(value))
+                            ans = Processing('вычисли '+str(value))
                             ans._calculate()
-                            res.append(str(key) + '=' + ans.answer)
+                            res.append(str(key) + '=' + str(ans.answer))
                         else:
                             # Округляем если целое
                             if is_number_int(value):
@@ -381,5 +381,5 @@ if __name__ == '__main__':
     res = Processing(equation)
     res.process()
     user_answer = str(res.answer if res.answer else 'default_answer')
-    print(res.find_replace_multi(user_answer, REPLACE_TTS))
+    print(user_answer)
   
