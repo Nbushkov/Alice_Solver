@@ -158,6 +158,12 @@ class Processing:
         # добавляем умножение
         self.equation = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', self.equation)
         self.equation = re.sub(r'\)\s*\(', r')*(', self.equation)
+        # Заменяем i на I для корректной обработки мнимой единицы
+        self.equation = self.equation.replace("i", "I")
+        # Заменяем e на E для корректной обработки числа e
+        self.equation = self.equation.replace("e", "E")
+        # Корректируем число пи после замены i
+        self.equation = self.equation.replace("pI", "pi")
 
         # проверка русского текста
         if self.check_russian():
@@ -196,7 +202,6 @@ class Processing:
         if self.check_equality() == 1:
             self.move()
         # пытаемся решить
-        # print(self.equation)
         try:
             x, y = symbols('x,y')
             solution = solve(self.equation, dict=True)
