@@ -164,6 +164,8 @@ class Processing:
         self.equation = self.equation.replace("e", "E")
         # Корректируем число пи после замены i
         self.equation = self.equation.replace("pI", "pi")
+        # Корректируем экспоненту после замены e
+        self.equation = self.equation.replace("Exp", "exp")
 
         # проверка русского текста
         if self.check_russian():
