@@ -144,7 +144,7 @@ def is_digit(string):
         except (TypeError, ValueError):
             return False
 # Классическое Округление
-def rd(x, y=0):
+def rd(x, y=3):
     if not is_digit(x):
         return x
     m = int('1'+'0'*y) # multiplier - how many positions to the right
@@ -265,7 +265,7 @@ class Processing:
                             res.append(str(key) + '=' + str(ans.answer))
                         else:
                             # Округляем
-                            value = rd(value, 3)
+                            value = rd(value)
                             res.append(str(key) + '=' + str(value))
                 self.answer = 'Ответ %s' % (' или '.join(res))
 
