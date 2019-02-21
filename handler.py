@@ -38,6 +38,7 @@ REPLACE_IN = {
     ' факториал':'!',
     'из':'',
     'на':'',
+    'это':'',
     'модуль':'abs',
     'косинус':'cos',
     'синус':'sin',
@@ -89,7 +90,7 @@ REPLACE_BRACE = {
 
 ERRORS = {
     0:['Нет ошибок'],
-    1:['Уравнение должно содержать переменную x или y','В вашем уравнении нет неизвестной','Для вычисления нужно сказать Вычисли вместо реши'],
+    1:['Нет уравнения','Необходимо ввести само уравнение'],
     2:['Уравнение должно содержать только одну переменную x или y', 'В вашем уравнении больше одной неизвестной'],
     3:['Уравнение может содержать только один знак равенства', 'В вашем уравнении несколько знаков равенства'],
     4:['В уравнении непарные скобки', 'Число отрывающихся скобок не равно числу закрывающихся'],
@@ -149,7 +150,25 @@ class Processing:
                
     # Главный обработчик
     def process(self):
-        # Первичная подготовка текста запроса
+        if self.first_word in ['реши', 'решить', 'решение']:
+            self._prepare()
+            self._solve()
+        elif self.first_word in ['вычисли', 'вычислить']:
+            self._prepare()
+            self._calculate()
+        elif self.first_word in ['упрости', 'упростить']:
+            self._prepare()
+            self._simplify()
+        else: 
+            # Если первое слово не русское считаем что весь текст выражение, пытаемся решить
+            if not re.match(r'[а-яА-ЯёЁ]', self.first_word):
+                self.equation = self.first_word + ' ' + self.equation
+                self._prepare()
+                self._solve()
+            else:
+                self.answer = False
+    # Предварительная Подготовка выражения
+    def _prepare(self):
         # Замена слов в тексте на переменные и цифры
         self.equation = self.find_replace_multi(self.equation, REPLACE_DIGITS, True)
         self.equation = self.find_replace_multi(self.equation, REPLACE_BRACE)
@@ -169,20 +188,13 @@ class Processing:
         self.equation = self.equation.replace("pI", "pi")
         # Корректируем экспоненту после замены e
         self.equation = self.equation.replace("Exp", "exp")
-
-        if self.first_word in ['реши', 'решить']:
-            self._solve()
-        elif self.first_word in ['вычисли', 'вычислить']:
-            self._calculate()
-        elif self.first_word in ['упрости', 'упростить']:
-            self._simplify()
-        else: 
-            self.answer = False
-
     # Функция для решения уравнения
     def _solve(self):
         # Проверка на ошибки
         err = 0
+        # проверка наличия выражения 
+        if self.equation == '':
+            err = 1
         # проверка равенства 
         if self.check_equality() > 1:
             err = 3
@@ -191,8 +203,6 @@ class Processing:
             err = 4
         # проверка числа перемнных  
         var_num = self.check_unknown()
-        if var_num == 0:
-            err = 1
         if var_num == 2:
             err = 2
         # проверка русского текста
@@ -201,6 +211,10 @@ class Processing:
         # сообщаем об ошибке
         if 0 != err:
             self.answer = random.choice(ERRORS[err])
+            return
+        # если переменных нет, пытаемся вычислить
+        if var_num == 0:
+            self._calculate()
             return
 
         if self.check_equality() == 1:
@@ -237,7 +251,7 @@ class Processing:
     def _calculate(self):
         # проверка равенства 
         if self.check_equality() > 0:
-            self.answer = 'Уравнения я могу решать а не вычислять'
+            self._solve()
         # проверка русского текста
         elif self.check_russian():
             self.answer = random.choice(ERRORS[5])
@@ -254,7 +268,7 @@ class Processing:
     def _simplify(self):
         # проверка равенства 
         if self.check_equality() > 0:
-            self.answer = 'Уравнения я могу решать а не упрощать'
+            self._solve()
         # проверка русского текста
         elif self.check_russian():
             self.answer = random.choice(ERRORS[5])
