@@ -132,13 +132,31 @@ HELP_TEXTS = {
     'вычисли':['0.5(0.76-0.06)', '2^5*sqrt(16)'],
     'упрости':['(2x-3y)(3y-2x)-12xy'],
 }
-# Проверка на int
-def is_number_int(s):
-    try:
-        int(s)
-        return int(s) == s
-    except (TypeError, ValueError):
-        return False
+# Проверка строки на число
+def is_digit(string):
+    string = str(string)
+    if string.isdigit():
+       return True
+    else:
+        try:
+            float(string)
+            return True
+        except (TypeError, ValueError):
+            return False
+# Классическое Округление
+def rd(x, y=0):
+    if not is_digit(x):
+        return x
+    m = int('1'+'0'*y) # multiplier - how many positions to the right
+    q = float(x)*m # shift to the right by multiplier
+    c = int(q) # new number
+    i = int( (q-c)*10 ) # indicator number on the right
+    if i >= 5:
+        c += 1
+    final = c/m
+    if final == int(final):
+        final = int(final)
+    return final
 
 # Основной класс обработки алгебраического выражения        
 class Processing:
@@ -167,6 +185,7 @@ class Processing:
                 self._solve()
             else:
                 self.answer = False
+
     # Предварительная Подготовка выражения
     def _prepare(self):
         # Замена слов в тексте на переменные и цифры
@@ -178,7 +197,11 @@ class Processing:
         # убираем пробелы между числами
         self.equation = re.sub('(?<=\d)+ (?=\d)+', '', self.equation)
         # добавляем умножение
+        # после чисел
         self.equation = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', self.equation)
+        # перед скобкой
+        self.equation = re.sub(r'([x,y])\s*\(', r'\1*(', self.equation)
+        # между скобками
         self.equation = re.sub(r'\)\s*\(', r')*(', self.equation)
         # Заменяем i на I для корректной обработки мнимой единицы
         self.equation = self.equation.replace("i", "I")
@@ -188,6 +211,7 @@ class Processing:
         self.equation = self.equation.replace("pI", "pi")
         # Корректируем экспоненту после замены e
         self.equation = self.equation.replace("Exp", "exp")
+
     # Функция для решения уравнения
     def _solve(self):
         # Проверка на ошибки
@@ -240,17 +264,16 @@ class Processing:
                             ans._calculate()
                             res.append(str(key) + '=' + str(ans.answer))
                         else:
-                            # Округляем если целое
-                            if is_number_int(value):
-                                value = int(value)
+                            # Округляем
+                            value = rd(value, 3)
                             res.append(str(key) + '=' + str(value))
                 self.answer = 'Ответ %s' % (' или '.join(res))
 
 
     # Функция вычисления выражения
     def _calculate(self):
-        # проверка равенства 
-        if self.check_equality() > 0:
+        # проверка наличия равенства или переменной
+        if self.check_equality() > 0 or self.check_unknown():
             self._solve()
         # проверка русского текста
         elif self.check_russian():
@@ -260,9 +283,8 @@ class Processing:
                 self.answer = sympify(self.equation).evalf(4)
             except Exception:
                 self.answer = 'Ошибка в выражении'
-            # Округляем если целое
-            if is_number_int(self.answer):
-                self.answer = int(self.answer)
+            # Округляем 
+            self.answer = rd(self.answer)
 
     # Функция упрощения выражения
     def _simplify(self):
