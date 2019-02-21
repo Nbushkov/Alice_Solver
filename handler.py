@@ -19,9 +19,9 @@ REPLACE_IN = {
     'умножить':'*',
     '×':'*',
     '−':'-',
-    '–':'-',
-    'делить':'/',
+    '–':'-',   
     'разделить':'/',
+    'делить':'/',
     '÷':'/',
     ':':'/',
     ',':'.',
@@ -89,7 +89,7 @@ REPLACE_BRACE = {
 
 ERRORS = {
     0:['Нет ошибок'],
-    1:['Уравнение должно содержать переменную x или y','В вашем уравнении нет неизвестной'],
+    1:['Уравнение должно содержать переменную x или y','В вашем уравнении нет неизвестной','Для вычисления нужно сказать Вычисли вместо реши'],
     2:['Уравнение должно содержать только одну переменную x или y', 'В вашем уравнении больше одной неизвестной'],
     3:['Уравнение может содержать только один знак равенства', 'В вашем уравнении несколько знаков равенства'],
     4:['В уравнении непарные скобки', 'Число отрывающихся скобок не равно числу закрывающихся'],
@@ -115,6 +115,7 @@ REPLACE_TTS = {
     'log':'логарифм',
     'exp':'экспонента',
     'abs':'модуль',
+    'LambertW':'W-функция Ламберта',
     'x':'икс',
     'y':'игрек',
     'pi':'пи',
@@ -155,6 +156,8 @@ class Processing:
         self.equation = self.find_replace_multi(self.equation, REPLACE_IN)
         # ставим скобки если остались
         self.brace_placement()
+        # убираем пробелы между числами
+        self.equation = re.sub('(?<=\d)+ (?=\d)+', '', self.equation)
         # добавляем умножение
         self.equation = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', self.equation)
         self.equation = re.sub(r'\)\s*\(', r')*(', self.equation)
@@ -166,11 +169,6 @@ class Processing:
         self.equation = self.equation.replace("pI", "pi")
         # Корректируем экспоненту после замены e
         self.equation = self.equation.replace("Exp", "exp")
-
-        # проверка русского текста
-        if self.check_russian():
-            self.answer = random.choice(ERRORS[5])
-            return
 
         if self.first_word in ['реши', 'решить']:
             self._solve()
@@ -197,9 +195,13 @@ class Processing:
             err = 1
         if var_num == 2:
             err = 2
+        # проверка русского текста
+        if self.check_russian():
+            err = 5
         # сообщаем об ошибке
         if 0 != err:
             self.answer = random.choice(ERRORS[err])
+            return
 
         if self.check_equality() == 1:
             self.move()
@@ -236,6 +238,9 @@ class Processing:
         # проверка равенства 
         if self.check_equality() > 0:
             self.answer = 'Уравнения я могу решать а не вычислять'
+        # проверка русского текста
+        elif self.check_russian():
+            self.answer = random.choice(ERRORS[5])
         else:    
             try:
                 self.answer = sympify(self.equation).evalf(4)
@@ -250,6 +255,9 @@ class Processing:
         # проверка равенства 
         if self.check_equality() > 0:
             self.answer = 'Уравнения я могу решать а не упрощать'
+        # проверка русского текста
+        elif self.check_russian():
+            self.answer = random.choice(ERRORS[5])
         else:    
             try:
                 self.answer = simplify(self.equation)
@@ -359,6 +367,7 @@ def handle_dialog(req, res, user_storage):
         'правильно',
         'молодец',
         'хорошо',
+        'спасибо',
     ]:
         # Благодарим пользователя
         res.set_text('Спасибо, я стараюсь!')
@@ -368,7 +377,7 @@ def handle_dialog(req, res, user_storage):
     # помощь юзеру
     if user_message == 'помощь':
         res.set_text(default_answer+ \
-            'Для примеров скажите: Пример и ключевое слово.\nЧтобы закончить скажите Хватит или стоп.')
+            'Для примеров скажите: Пример и ключевое слово.\nЧтобы закончить скажите Выйти или Стоп.')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
 
@@ -386,7 +395,7 @@ def handle_dialog(req, res, user_storage):
         return res, user_storage    
     
     if process.first_word in [
-        'хватит',
+        'выйти',
         'стоп',
         'пока'
     ]:
