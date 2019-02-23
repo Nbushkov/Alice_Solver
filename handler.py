@@ -194,20 +194,18 @@ class Processing:
                
     # Главный обработчик
     def process(self):
-        if self.first_word in ['реши', 'решить', 'решение']:
-            self._prepare()
+        self._prepare()
+        if self.first_word in ['реши', 'решить', 'решение']:          
             self._solve()
         elif self.first_word in ['вычисли', 'вычислить']:
-            self._prepare()
             self._calculate()
-        elif self.first_word in ['упрости', 'упростить', 'прости']:
-            self._prepare()
+        elif self.first_word in ['упрости', 'упростить', 'упростите', 'ну прости', 'прости']:
             self._simplify()
         else: 
-            # Если первое слово не русское считаем что весь текст это выражение, пытаемся решить
-            if not check_russian(self.first_word):
-                self.equation = self.first_word + ' ' + self.equation
-                self._prepare()
+            # Проверим весь текст, если нет русских букв, считаем что это выражение, пытаемся решить
+            self.equation = self.first_word + ' ' + self.equation
+            self._prepare()
+            if not check_russian(self.equation):              
                 self._solve()
             # дефолтный ответ на непонятный запрос
             else:
