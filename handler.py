@@ -190,7 +190,6 @@ class Processing:
         parts = equation.split(' ', 1)
         self.first_word = parts[0]
         self.equation = parts[1] if len(parts) > 1 else ''
-        self.error = 0
                
     # Главный обработчик
     def process(self):
@@ -213,6 +212,7 @@ class Processing:
 
     # Предварительная подготовка выражения
     def _prepare(self):
+        self.error = 0
         # Замена слов в тексте на переменные и цифры
         self.equation = find_replace_multi(self.equation, REPLACE_DIGITS, True)
         self.equation = find_replace_multi(self.equation, REPLACE_BRACE)
@@ -229,13 +229,9 @@ class Processing:
         # между скобками
         self.equation = re.sub(r'\)\s*\(', r')*(', self.equation)
         # Заменяем i на I для корректной обработки мнимой единицы
-        self.equation = self.equation.replace("i", "I")
+        self.equation = re.sub(r"\bi\b","I" ,self.equation)
         # Заменяем e на E для корректной обработки числа e
-        self.equation = self.equation.replace("e", "E")
-        # Корректируем число пи после замены i
-        self.equation = self.equation.replace("pI", "pi")
-        # Корректируем экспоненту после замены e
-        self.equation = self.equation.replace("Exp", "exp")
+        self.equation = re.sub(r"\be\b","E" ,self.equation)
         # базовые проверки
         # проверка наличия выражения 
         if self.equation == '':
