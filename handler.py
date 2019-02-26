@@ -374,6 +374,7 @@ def handle_dialog(req, res, user_storage):
                 "url": "https://dialogs.yandex.ru/store/skills/48b31fb4-areshkin-pomozhet-reshit-i-podschi",
                 "hide": True
             }],
+            "to_log": True
         }
 
     # Флаг добавления в логи
