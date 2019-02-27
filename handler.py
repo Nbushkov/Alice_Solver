@@ -357,7 +357,7 @@ class Processing:
              
 # Функция для непосредственной обработки диалога.
 def handle_dialog(req, res, user_storage):
-    if req.is_new_session:
+    if req.is_new_session or user_storage is None:
         # Это новый пользователь.
         # Инициализируем сессию и поприветствуем его.
         user_storage = {
