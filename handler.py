@@ -190,6 +190,7 @@ class Processing:
         parts = equation.split(' ', 1)
         self.first_word = parts[0]
         self.equation = parts[1] if len(parts) > 1 else ''
+        self.error = 0
                
     # Главный обработчик
     def process(self):
