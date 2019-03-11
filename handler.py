@@ -9,11 +9,12 @@ REPLACE_DIGITS = {
     'ноль':'0', 'один':'1', 'два':'2', 'три':'3', 'четыре':'4', 'пять':'5', 'шесть':'6', 'восемь':'8', 'семь':'7', 'девять':'9', 'десять':'10',
     'одиннадцать':'11', 'двенадцать':'12', 'тринадцать':'13', 'четырнадцать':'14', 'пятнадцать':'15', 'шестнадцать':'16', 
     'семнадцать':'17', 'восемнадцать':'18', 'девятнадцать':'19',
-    'х':'x', 'у':'y'
+    'х':'x', 'у':'y',
+    'пи':'pi',
+    'е':'E', 
 }
 # словарь замен математических действий и функций
 REPLACE_IN = {
-    'уравнение':'',
     'икс':'x', 'игрек':'y', 
     'плюс':'+', 'минус':'-', 
     'умножить':'*',
@@ -41,9 +42,6 @@ REPLACE_IN = {
     'степень':'**',
     'корень':'sqrt',
     ' факториал':'!',
-    'из':'',
-    'на':'',
-    'это':'',
     'модуль':'abs',
     'косинус':'cos',
     'синус':'sin',
@@ -54,8 +52,6 @@ REPLACE_IN = {
     'логарифм':'log',
     'число пи':'pi',
     'число е':'E', 
-    'пи':'pi',
-    'е':'E', 
 }
 # варианты произношений скобок
 REPLACE_BRACE = {
@@ -79,6 +75,7 @@ REPLACE_BRACE = {
     'закрыто':'закрыть',
     'открыл':'открыть',
     'закрыл':'закрыть',
+    'скобках':'скобка',
     'скобки':'скобка',
     'скобку':'скобка',
     'скобочка':'скобка',
@@ -137,6 +134,12 @@ HELP_TEXTS = {
     'вычисли':['5(76-6)', '2^5*sqrt(16)'],
     'упрости':['(2x-3y)(3y-2x)-12xy'],
 }
+# Команды решения
+COMMAND_SOLV = ['реши', 'решить',  'решите', 'решение']
+# Команды упрощения
+COMMAND_SIMPL = ['упрости', 'упростить', 'упростите', 'ну прости', 'прости', 'опусти']
+# Команды вычисления
+COMMAND_CALC = ['вычисли', 'вычислить', 'посчитай']
 
 '''
 Общие функции 
@@ -177,39 +180,33 @@ def find_replace_multi(string, dictionary, use_word = False):
 
     return str(string)
 
-# Определение наличия русских букв
-def check_russian(string):
-    return bool(re.search(r'[а-яА-ЯёЁ]', string))
-
 '''
 Основной класс обработки алгебраического выражения      
 '''
 class Processing:
     def __init__(self, equation):
-        # определяем что делать по первому слову в команде
+        # выделяем первое слово в команде
         parts = equation.split(' ', 1)
         self.first_word = parts[0]
-        self.equation = parts[1] if len(parts) > 1 else ''
+        # исходное выражение
+        self.equation = equation
+        # код ошибки
         self.error = 0
+        # тип задачи
+        self.task = 'unknown'
                
     # Главный обработчик
     def process(self):
         self._prepare()
-        if self.first_word in ['реши', 'решить', 'решение']:          
+        if self.task == 'solve':
             self._solve()
-        elif self.first_word in ['вычисли', 'вычислить']:
+        elif self.task == 'calculate':
             self._calculate()
-        elif self.first_word in ['упрости', 'упростить', 'упростите', 'ну прости', 'прости']:
+        elif self.task == 'simplify':
             self._simplify()
         else: 
-            # Проверим весь текст, если нет русских букв, считаем что это выражение, пытаемся решить
-            self.equation = self.first_word + ' ' + self.equation
-            self._prepare()
-            if not check_russian(self.equation):              
-                self._solve()
             # дефолтный ответ на непонятный запрос
-            else:
-                self.answer = False
+            self.answer = False
 
     # Предварительная подготовка выражения
     def _prepare(self):
@@ -240,19 +237,34 @@ class Processing:
         # проверка соответствия скобок
         if not self.check_pairing():
             self.error = 4
-        # проверка наличия русского текста
-        if check_russian(self.equation):
-            self.error = 5
-
-    # Функция для решения уравнения
-    def _solve(self):
         # проверка знаков равенства 
         eqn = self.check_equality()
         if eqn > 1:
-            self.error = 3       
+            self.error = 3   
+        # определяем тип задачи
+        if any(c in self.equation for c in COMMAND_SOLV) or eqn == 1:
+            self.task = 'solve'
+        if any(c in self.equation for c in COMMAND_SIMPL):
+            self.task = 'simplify'
+        if any(c in self.equation for c in COMMAND_CALC):
+            self.task = 'calculate'
+        # если неясно и русского текста нет, смотрим по переменным
+        if self.task == 'unknown' and not bool(re.search(r'[а-яА-ЯёЁ]', self.equation)):
+            var_num = self.check_unknown()
+            if var_num == 0:
+                self.task = 'calculate'
+            elif var_num == 1:
+                self.task = 'solve'
+            else:
+                self.task = 'simplify'
+        # убираем оставшийся русский текст
+        self.equation = re.sub('[а-яА-ЯёЁ]', '', self.equation)
+
+    # Функция для решения уравнения
+    def _solve(self):    
         # проверка числа перемнных  
         var_num = self.check_unknown()
-        if var_num == 2:
+        if var_num > 1:
             self.error = 2      
         # сообщаем об ошибке
         if bool(self.error):
@@ -263,7 +275,7 @@ class Processing:
             self._calculate()
             return
         # переносим все в левую часть (приравниваем к 0)
-        if eqn == 1:
+        if self.check_equality() == 1:
             self.move()
         # пытаемся решить
         try:
@@ -298,7 +310,7 @@ class Processing:
             self.answer = random.choice(ERRORS[self.error])
             return
         # проверка наличия равенства или переменной
-        if self.check_equality() > 0 or self.check_unknown():
+        if self.check_equality() == 1 or self.check_unknown() == 1:
             self._solve()
         else:    
             try:
@@ -315,7 +327,7 @@ class Processing:
             self.answer = random.choice(ERRORS[self.error])
             return
         # проверка равенства 
-        if self.check_equality() > 0:
+        if self.check_equality() == 1:
             self._solve()
         else:    
             try:
@@ -408,8 +420,6 @@ def handle_dialog(req, res, user_storage):
     if process.first_word in [
         'круто',
         'класс',
-        'верно',
-        'правильно',
         'молодец',
         'хорошо',
         'спасибо',
@@ -419,8 +429,19 @@ def handle_dialog(req, res, user_storage):
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
 
+    # всяко разное
+    if process.first_word in [
+        'привет',
+        'ладно',
+        'пожалуйста',
+    ]:
+        # отвечаем аналогично
+        res.set_text('Ну '+process.first_word)
+        res.set_buttons(user_storage['suggests'])
+        return res, user_storage
+
     # помощь юзеру
-    if user_message == 'помощь':
+    if process.first_word == 'помощь':
         res.set_text(default_answer+ \
             'Для примеров скажите: Пример и ключевое слово.\nЧтобы закончить скажите Выйти или Стоп.')
         res.set_buttons(user_storage['suggests'])
@@ -448,7 +469,7 @@ def handle_dialog(req, res, user_storage):
         res.set_text('Приходите ещё, порешаем!')
         res.end()
         return res, user_storage
-    # Обрабатываем другие запросы
+    # Обрабатываем основные запросы
     process.process()
     
     # Если ошибка попробуем с исходным сообщением
@@ -469,6 +490,8 @@ if __name__ == '__main__':
     equation = ' '.join(sys.argv[1:])
     res = Processing(equation)
     res.process()
+    if bool(res.error):
+        res.answer = random.choice(ERRORS[res.error])
     user_answer = str(res.answer if res.answer else 'default_answer')
     print(user_answer)
   
