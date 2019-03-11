@@ -294,7 +294,7 @@ class Processing:
                     for key, value in sol.items():
                         # проверка если слишком длинный ответ, вычисляем
                         if len(str(value)) > 50:
-                            ans = Processing('вычисли '+str(value))
+                            ans = Processing(str(value))
                             ans._calculate()
                             res.append(str(key) + '=' + str(ans.answer))
                         else:
