@@ -261,7 +261,8 @@ class Processing:
         self.equation = re.sub('[а-яА-ЯёЁ]', '', self.equation)
 
     # Функция для решения уравнения
-    def _solve(self):    
+    def _solve(self):
+        eqn = self.check_equality()    
         # проверка числа перемнных  
         var_num = self.check_unknown()
         if var_num > 1:
@@ -270,12 +271,12 @@ class Processing:
         if bool(self.error):
             self.answer = random.choice(ERRORS[self.error])
             return
-        # если переменных нет, пытаемся вычислить
-        if var_num == 0:
+        # если переменных нет, и нет равенства пытаемся вычислить
+        if var_num == 0 and eqn == 0:
             self._calculate()
             return
         # переносим все в левую часть (приравниваем к 0)
-        if self.check_equality() == 1:
+        if eqn == 1:
             self.move()
         # пытаемся решить
         try:
