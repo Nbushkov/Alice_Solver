@@ -17,6 +17,10 @@ REPLACE_DIGITS = {
 REPLACE_IN = {
     'икс':'x', 'игрек':'y', 
     'плюс':'+', 'минус':'-', 
+    'прибавить':'+',  
+    'отнять':'-', 
+    'помножить':'*',
+    'умноженное':'*',
     'умножить':'*',
     '×':'*',
     '−':'-',
@@ -42,9 +46,12 @@ REPLACE_IN = {
     'в третьей':'**3',
     'в четвертой':'**4',
     'в пятой':'**5',   
+    'в шестой':'**6',   
+    'в седьмой':'**7',   
+    'в восьмой':'**8',   
+    'в девятой':'**9',   
+    'в десятой':'**10',   
     'в степени':'**',
-    'степени':'**',
-    'степень':'**',
     'корень':'sqrt',
     ' факториал':'!',
     'модуль':'abs',
@@ -57,6 +64,7 @@ REPLACE_IN = {
     'логарифм':'log',
     'число пи':'pi',
     'число е':'E', 
+    'число и':'I',
 }
 # варианты произношений скобок
 REPLACE_BRACE = {
@@ -139,12 +147,14 @@ HELP_TEXTS = {
     'вычисли':['5(76-6)', '2^5*sqrt(16)'],
     'упрости':['(2x-3y)(3y-2x)-12xy'],
 }
+# лишие слова, междометия
+UNNECESSARY_WORDS = ['давай', 'на', 'ну', 'а', 'и']
 # Команды решения
 COMMAND_SOLV = ['реши', 'решить',  'решите', 'решение']
 # Команды упрощения
 COMMAND_SIMPL = ['упрости', 'упростить', 'упростите', 'ну прости', 'прости', 'опусти']
 # Команды вычисления
-COMMAND_CALC = ['вычисли', 'вычислить', 'посчитай']
+COMMAND_CALC = ['вычисли', 'вычислить', 'сколько']
 
 '''
 Общие функции 
@@ -190,6 +200,9 @@ def find_replace_multi(string, dictionary, use_word = False):
 '''
 class Processing:
     def __init__(self, equation):
+        # исходное выражение выбросим лишлие слова
+        for item in UNNECESSARY_WORDS:
+            equation = re.sub(r'\b{}\b'.format(item), '', equation)
         # выделяем первое слово в команде
         parts = equation.split(' ', 1)
         self.first_word = parts[0]
@@ -236,9 +249,6 @@ class Processing:
         # Заменяем e на E для корректной обработки числа e
         self.equation = re.sub(r"\be\b","E" ,self.equation)
         # базовые проверки
-        # проверка наличия выражения 
-        if self.equation == '':
-            self.error = 1
         # проверка соответствия скобок
         if not self.check_pairing():
             self.error = 4
@@ -256,12 +266,10 @@ class Processing:
         # если неясно и русского текста нет, смотрим по переменным
         if self.task == 'unknown' and not bool(re.search(r'[а-яА-ЯёЁ]', self.equation)):
             var_num = self.check_unknown()
-            if var_num == 0:
-                self.task = 'calculate'
+            if var_num == 0 and self.equation != '':
+                self.task = 'simplify'
             elif var_num == 1:
                 self.task = 'solve'
-            else:
-                self.task = 'simplify'
         # убираем оставшийся русский текст
         self.equation = re.sub('[а-яА-ЯёЁ]', '', self.equation)
 
@@ -270,6 +278,9 @@ class Processing:
         eqn = self.check_equality()    
         # проверка числа перемнных  
         var_num = self.check_unknown()
+        # проверка на наличие выражения
+        if self.equation == '':
+            self.error = 1  
         if var_num > 1:
             self.error = 2      
         # сообщаем об ошибке
@@ -311,6 +322,9 @@ class Processing:
 
     # Функция вычисления выражения
     def _calculate(self):
+        # проверка на наличие выражения
+        if self.equation == '':
+            self.error = 1 
         # Проверка на ошибки
         if bool(self.error):
             self.answer = random.choice(ERRORS[self.error])
@@ -320,7 +334,7 @@ class Processing:
             self._solve()
         else:    
             try:
-                self.answer = sympify(self.equation).evalf(4)
+                self.answer = sympify(self.equation)
             except Exception:
                 self.answer = 'Ошибка в выражении'
             # Округляем 
@@ -328,6 +342,9 @@ class Processing:
 
     # Функция упрощения выражения
     def _simplify(self):
+        # проверка на наличие выражения
+        if self.equation == '':
+            self.error = 1 
         # Проверка на ошибки
         if bool(self.error):
             self.answer = random.choice(ERRORS[self.error])
