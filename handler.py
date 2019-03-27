@@ -155,6 +155,8 @@ COMMAND_SOLV = ['реши', 'решить',  'решите', 'решение']
 COMMAND_SIMPL = ['упрости', 'упростить', 'упростите', 'ну прости', 'прости', 'опусти']
 # Команды вычисления
 COMMAND_CALC = ['вычисли', 'вычислить', 'сколько']
+# ответ на некорректный запрос
+DEFAULT_ANSWER = 'У меня нет ответа, скажите помощь.'
 
 '''
 Общие функции 
@@ -421,9 +423,6 @@ def handle_dialog(req, res, user_storage):
     process = Processing(user_command)
     # данные о исходном сообщении
     user_message = req.original.lower().strip()
-    # ответ на некорректный запрос
-    default_answer = 'Я понимаю фразы начинающиеся с ключевых слов: ' + ', '.join(HELP_TEXTS) + \
-    ', дополненные алгебраическим выражением.\n'
 
     if not process.first_word:
         user_answer = 'Привет!\nЯ могу решать уравнения с одной неизвестной x или y,'+ \
@@ -437,6 +436,15 @@ def handle_dialog(req, res, user_storage):
     if user_message == 'ping':
         res.set_text('pong')
         user_storage['to_log'] = False
+        return res, user_storage
+
+    # ответ да 
+    if user_message == 'да':
+        res.set_text('Я готов к работе')
+        return res, user_storage
+    # ответ нет
+    if user_message == 'нет':
+        res.set_text('На нет и суда нет')
         return res, user_storage
 
     # если похвалили
@@ -465,8 +473,9 @@ def handle_dialog(req, res, user_storage):
 
     # помощь юзеру
     if process.first_word == 'помощь':
-        res.set_text(default_answer+ \
-            'Для примеров скажите: Пример и ключевое слово.\nЧтобы закончить скажите Выйти или Стоп.')
+        res.set_text('Я понимаю фразы начинающиеся с ключевых слов: ' + ', '.join(HELP_TEXTS) + \
+        ', дополненные алгебраическим выражением.\n'+ \
+        'Для примеров скажите: Пример и ключевое слово.\nЧтобы закончить скажите Выйти или Стоп.')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
 
@@ -500,7 +509,7 @@ def handle_dialog(req, res, user_storage):
         process = Processing(user_message)
         process.process()
 
-    user_answer = str(process.answer if process.answer else default_answer)
+    user_answer = str(process.answer if process.answer else DEFAULT_ANSWER)
 
     res.set_text(user_answer)
     res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
@@ -515,6 +524,6 @@ if __name__ == '__main__':
     res.process()
     if bool(res.error):
         res.answer = random.choice(ERRORS[res.error])
-    user_answer = str(res.answer if res.answer else 'default_answer')
+    user_answer = str(res.answer if res.answer else DEFAULT_ANSWER)
     print(user_answer)
   
