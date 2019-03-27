@@ -268,10 +268,10 @@ class Processing:
         # если неясно и русского текста нет, смотрим по переменным
         if self.task == 'unknown' and not bool(re.search(r'[а-яА-ЯёЁ]', self.equation)):
             var_num = self.check_unknown()
-            if var_num == 0 and self.equation != '':
-                self.task = 'simplify'
-            elif var_num == 1:
+            if var_num == 1:
                 self.task = 'solve'
+            elif self.equation != '':
+                self.task = 'simplify'
         # убираем оставшийся русский текст
         self.equation = re.sub('[а-яА-ЯёЁ]', '', self.equation)
 
