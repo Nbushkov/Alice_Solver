@@ -156,7 +156,7 @@ COMMAND_SIMPL = ['упрости', 'упростить', 'упростите', '
 # Команды вычисления
 COMMAND_CALC = ['вычисли', 'вычислить', 'сколько']
 # ответ на некорректный запрос
-DEFAULT_ANSWER = 'У меня нет ответа, скажите помощь.'
+DEFAULT_ANSWER = ['У меня нет ответа.', 'Я просто решаю уравнения.', 'Этого я не понимаю.', 'Я не по этой части.']
 
 '''
 Общие функции 
@@ -509,7 +509,7 @@ def handle_dialog(req, res, user_storage):
         process = Processing(user_message)
         process.process()
 
-    user_answer = str(process.answer if process.answer else DEFAULT_ANSWER)
+    user_answer = str(process.answer if process.answer else random.choice(DEFAULT_ANSWER)+' Для подсказки скажите помощь.')
 
     res.set_text(user_answer)
     res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
@@ -524,6 +524,6 @@ if __name__ == '__main__':
     res.process()
     if bool(res.error):
         res.answer = random.choice(ERRORS[res.error])
-    user_answer = str(res.answer if res.answer else DEFAULT_ANSWER)
+    user_answer = str(res.answer if res.answer else random.choice(DEFAULT_ANSWER))
     print(user_answer)
   
