@@ -157,7 +157,8 @@ COMMAND_SIMPL = ['упрости', 'упростить', 'упростите', '
 COMMAND_CALC = ['вычисли', 'вычислить', 'сколько']
 # ответ на некорректный запрос
 DEFAULT_ANSWER = ['У меня нет ответа.', 'Я просто решаю уравнения.', 'Этого я не понимаю.', 'Я не по этой части.']
-
+# точность (число знаков) для округления
+CALC_PRECISION = 3
 '''
 Общие функции 
 '''
@@ -173,10 +174,10 @@ def is_digit(string):
         except (TypeError, ValueError):
             return False
 # Классическое Округление (чтоб не было лишних нулей)
-def rd(x, y=3):
+def rd(x):
     if not is_digit(x):
         return x
-    m = int('1'+'0'*y) # multiplier - how many positions to the right
+    m = int('1'+'0'*CALC_PRECISION) # multiplier - how many positions to the right
     q = float(x)*m # shift to the right by multiplier
     c = int(q) # new number
     i = int( (q-c)*10 ) # indicator number on the right
@@ -336,11 +337,9 @@ class Processing:
             self._solve()
         else:    
             try:
-                self.answer = sympify(self.equation)
+                self.answer = sympify(self.equation).evalf(CALC_PRECISION+1)
             except Exception:
                 self.answer = 'Ошибка в выражении'
-            # Округляем 
-            self.answer = rd(self.answer)
 
     # Функция упрощения выражения
     def _simplify(self):
