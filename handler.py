@@ -337,7 +337,9 @@ class Processing:
             self._solve()
         else:    
             try:
-                self.answer = sympify(self.equation).evalf(CALC_PRECISION+1)
+                self.answer = sympify(self.equation).evalf()
+                # Округляем
+                self.answer = rd(self.answer)
             except Exception:
                 self.answer = 'Ошибка в выражении'
 
@@ -356,6 +358,8 @@ class Processing:
         else:    
             try:
                 self.answer = simplify(self.equation)
+                # Округляем
+                self.answer = rd(self.answer)
             except Exception:
                 self.answer = 'Ошибка в выражении'
 
