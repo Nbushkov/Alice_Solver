@@ -9,12 +9,13 @@ REPLACE_DIGITS = {
     'ноль':'0', 'один':'1', 'два':'2', 'три':'3', 'четыре':'4', 'пять':'5', 'шесть':'6', 'восемь':'8', 'семь':'7', 'девять':'9', 'десять':'10',
     'одиннадцать':'11', 'двенадцать':'12', 'тринадцать':'13', 'четырнадцать':'14', 'пятнадцать':'15', 'шестнадцать':'16', 
     'семнадцать':'17', 'восемнадцать':'18', 'девятнадцать':'19',
+    'полтора':'1.5',
     'х':'x', 'у':'y',
     'пи':'pi',
     'е':'E', 
 }
-# словарь замен математических действий и функций
-REPLACE_IN = {
+# словарь замен 
+REPLACE_ACTIONS = {
     'икс':'x', 'игрек':'y', 
     'плюс':'+', 'минус':'-', 
     'прибавить':'+',  
@@ -29,6 +30,7 @@ REPLACE_IN = {
     'поделить':'/',
     'деленное':'/',
     'делить':'/',
+    'дробь':'/',
     '÷':'/',
     ':':'/',
     ',':'.',
@@ -52,8 +54,14 @@ REPLACE_IN = {
     'в девятой':'**9',   
     'в десятой':'**10',   
     'в степени':'**',
-    'корень':'sqrt',
     ' факториал':'!',
+    'число пи':'pi',
+    'число е':'E', 
+    'число и':'I',
+}
+# словарь замен функций
+REPLACE_FUNCTIONS = {
+    'корень':'sqrt',
     'модуль':'abs',
     'косинус':'cos',
     'синус':'sin',
@@ -62,9 +70,6 @@ REPLACE_IN = {
     'экспонента':'exp',
     'експонента':'exp',
     'логарифм':'log',
-    'число пи':'pi',
-    'число е':'E', 
-    'число и':'I',
 }
 # варианты произношений скобок
 REPLACE_BRACE = {
@@ -148,7 +153,7 @@ HELP_TEXTS = {
     'упрости':['(2x-3y)(3y-2x)-12xy'],
 }
 # лишие слова, междометия
-UNNECESSARY_WORDS = ['давай', 'на', 'ну', 'а', 'и']
+UNNECESSARY_WORDS = ['давай', 'на', 'ну', 'а', 'и', 'из', 'от']
 # Команды решения
 COMMAND_SOLV = ['реши', 'решить',  'решите', 'решение']
 # Команды упрощения
@@ -198,6 +203,38 @@ def find_replace_multi(string, dictionary, use_word = False):
 
     return str(string)
 
+# Вставка математиченской функции в строку
+def insert_function(fpattern, fname, string):
+    start = string.find(fpattern)
+    if start == -1:
+        return string
+    pat_len = len(fpattern)
+    nam_len = len(fname)
+    index1 = start + pat_len
+    # делаем замену в зависимости от наличия скобки
+    if '(' == re.search(r"\S", string[index1:]).group():
+        string = string.replace(fpattern, fname, 1)
+    else:
+        string = string.replace(fpattern, fname+'(', 1)
+        index2 = start + nam_len + 1
+        # ищем позицию для закрытия скобки
+        # первый непробельный после скобки
+        first = re.search(r"\S", string[index2:]).start()
+        index3 = index2 + first + 1
+        # первый пробел после непробельного или конец строки
+        space = re.search(r"\s", string[index3:])
+        if space is None:
+            end = len(string)
+        else:
+            end = index3 + space.start()
+        string = string[:end] + ')' + string[end:]
+    
+    # если паттерн есть еще, повторяем
+    if fpattern in string:
+        string = insert_function(fpattern, fname, string)
+
+    return string
+
 '''
 Основной класс обработки алгебраического выражения      
 '''
@@ -206,6 +243,7 @@ class Processing:
         # исходное выражение выбросим лишлие слова
         for item in UNNECESSARY_WORDS:
             equation = re.sub(r'\b{}\b'.format(item), '', equation)
+        equation = equation.strip()
         # выделяем первое слово в команде
         parts = equation.split(' ', 1)
         self.first_word = parts[0]
@@ -215,7 +253,7 @@ class Processing:
         self.error = 0
         # тип задачи
         self.task = 'unknown'
-               
+
     # Главный обработчик
     def process(self):
         self._prepare()
@@ -235,7 +273,7 @@ class Processing:
         # Замена слов в тексте на переменные и цифры
         self.equation = find_replace_multi(self.equation, REPLACE_DIGITS, True)
         self.equation = find_replace_multi(self.equation, REPLACE_BRACE)
-        self.equation = find_replace_multi(self.equation, REPLACE_IN)
+        self.equation = find_replace_multi(self.equation, REPLACE_ACTIONS)
         # ставим скобки если остались
         self.brace_placement()
         # убираем пробелы между числами
@@ -247,6 +285,12 @@ class Processing:
         self.equation = re.sub(r'([x,y])\s*\(', r'\1*(', self.equation)
         # между скобками
         self.equation = re.sub(r'\)\s*\(', r')*(', self.equation)
+         # ставим функции, если есть
+        for func in REPLACE_FUNCTIONS.keys():
+            self.equation = insert_function(func, REPLACE_FUNCTIONS[func], self.equation)
+        # добавляем умножение
+        # после чисел
+        self.equation = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', self.equation)
         # Заменяем i на I для корректной обработки мнимой единицы
         self.equation = re.sub(r"\bi\b","I" ,self.equation)
         # Заменяем e на E для корректной обработки числа e
