@@ -21,6 +21,18 @@ REPLACE_DIGITS = {
     'полтора':'1.5',
     'нуль':'0',
     'нулю':'0', 'одному':'1', 'двум':'2', 'трем':'3', 'четырем':'4', 'трём':'3', 'четырём':'4', 'пяти':'5', 'шести':'6', 'восьми':'8', 'семи':'7', 'девяти':'9', 'десяти':'10',
+    'одного':'1', 'двух':'2', 'трех':'3', 'четырех':'4','трёх':'3', 'четырёх':'4',
+    'биллион':'10**9',
+    'триллион':'10**12',
+    'квадриллион':'10**15',
+    'квинтиллион':'10**18',
+    'секстиллион':'10**21',
+    'сиксилион':'10**21',
+    'сиксиллион':'10**21',
+    'септиллион':'10**24',
+    'октиллион':'10**27',
+    'нониллион':'10**30',
+    'дециллион':'10**33',
     'х':'x', 'у':'y',
     'пи':'pi',
     'е':'E', 
@@ -49,6 +61,7 @@ REPLACE_ACTIONS = {
     'yx':'y*x',
     'равняется':'=',
     'равно':'=',
+    'равен':'=',
     'в квадрате':'**2',
     'квадрате':'**2',
     'в кубе':'**3',
@@ -170,9 +183,9 @@ COMMAND_SOLV = ['реши', 'решить',  'решите', 'решение']
 # Команды упрощения
 COMMAND_SIMPL = ['упрости', 'упростить', 'упростите', 'ну прости', 'прости', 'опусти']
 # Команды вычисления
-COMMAND_CALC = ['вычисли', 'вычислить', 'сколько']
+COMMAND_CALC = ['вычисли', 'вычислить', 'сколько', 'найди']
 # ответ на некорректный запрос
-DEFAULT_ANSWER = ['У меня нет ответа.', 'Я просто решаю уравнения.', 'Этого я не понимаю.', 'Я не по этой части.']
+DEFAULT_ANSWER = ['У меня нет ответа.', 'Я просто решаю уравнения.', 'Этого я не понимаю.', 'Я не по этой части.', 'Я понимаю фразы начинающиеся словами: реши, вычисли, упрости.']
 # точность (число знаков) для округления
 CALC_PRECISION = 3
 '''
@@ -193,16 +206,9 @@ def is_digit(string):
 def rd(x):
     if not is_digit(x):
         return x
-    m = int('1'+'0'*CALC_PRECISION) # multiplier - how many positions to the right
-    q = float(x)*m # shift to the right by multiplier
-    c = int(q) # new number
-    i = int( (q-c)*10 ) # indicator number on the right
-    if i >= 5:
-        c += 1
-    final = c/m
-    if final == int(final):
-        final = int(final)
-    return final
+    if int(x) == x:
+        return int(x)
+    return x.round(CALC_PRECISION)
 
 # Функция замены по словарю 
 def find_replace_multi(string, dictionary, use_word = False):
@@ -229,8 +235,8 @@ def insert_function(fpattern, fname, string):
         string = string.replace(fpattern, fname+'(', 1)
         index2 = start + nam_len + 1
         # ищем позицию для закрытия скобки
-        # первый непробельный после скобки
-        first = re.search(r"\S", string[index2:]).start()
+        # первый непробельный и не знаки действий символ
+        first = re.search(r"[^-+*/\s]", string[index2:]).start()
         index3 = index2 + first + 1
         # первый пробел после непробельного или конец строки
         space = re.search(r"\s", string[index3:])
@@ -326,6 +332,8 @@ class Processing:
             var_num = self.check_unknown()
             if var_num == 1:
                 self.task = 'solve'
+            elif var_num == 0:
+                self.task = 'calculate'
             elif self.equation != '':
                 self.task = 'simplify'
         # убираем оставшийся русский текст
@@ -392,7 +400,7 @@ class Processing:
             self._solve()
         else:    
             try:
-                self.answer = sympify(self.equation).evalf()
+                self.answer = sympify(self.equation).evalf(50)
                 # Округляем
                 self.answer = rd(self.answer)
             except Exception:
