@@ -512,11 +512,25 @@ def handle_dialog(req, res, user_storage):
     if user_message == 'нет':
         res.set_text('На нет и суда нет')
         return res, user_storage
+    # Знакомство
+    if user_message == 'как тебя зовут':
+        res.set_text('Знайка. И я люблю считать.')
+        return res, user_storage
+
+    # переход по ссылке
+    if process.first_word in [
+        'решебник',
+        'оценить',
+    ]:
+        # отвечаем аналогично
+        res.set_text('Открываю ссылку')
+        res.set_buttons(user_storage['suggests'])
+        return res, user_storage
 
     # если похвалили
     if process.first_word in [
         'круто',
-        'класс',
+        'офигеть',
         'молодец',
         'хорошо',
         'спасибо',
@@ -561,7 +575,7 @@ def handle_dialog(req, res, user_storage):
     if process.first_word in [
         'выйти',
         'стоп',
-        'пока'
+        'хватит'
     ]:
         # Пользователь закончил, прощаемся.
         res.set_text('Приходите ещё, порешаем!')
