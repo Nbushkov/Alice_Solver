@@ -505,16 +505,18 @@ def handle_dialog(req, res, user_storage):
         return res, user_storage
 
     # ответ да 
-    if user_message == 'да':
-        res.set_text('Я готов. Для подсказки скажите помощь.')
+    if user_message == 'да' or user_message == 'давай':
+        res.set_text('Скажите слово: реши, вычисли или упрости и назовите выражение.')
         return res, user_storage
     # ответ нет
     if user_message == 'нет':
         res.set_text('На нет и суда нет')
+        res.set_buttons(user_storage['suggests'])
         return res, user_storage
     # Знакомство
     if user_message == 'как тебя зовут':
-        res.set_text('Знайка. И я люблю считать.')
+        res.set_text('Меня зовут Знайка. И я люблю считать.')
+        res.set_buttons(user_storage['suggests'])
         return res, user_storage
 
     # переход по ссылке
@@ -529,7 +531,7 @@ def handle_dialog(req, res, user_storage):
 
     # если похвалили
     if process.first_word in [
-        'круто',
+        'правильно',
         'офигеть',
         'молодец',
         'хорошо',
