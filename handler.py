@@ -506,7 +506,7 @@ def handle_dialog(req, res, user_storage):
         return res, user_storage
 
     # ответ на ругательства
-    if res.danger:
+    if req.danger:
         res.set_text('Давайте не будем ругаться!')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
