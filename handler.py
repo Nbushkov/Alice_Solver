@@ -214,7 +214,8 @@ def rd(x):
 def find_replace_multi(string, dictionary, use_word = False):
     for item in dictionary.keys():
         if use_word:
-            string = re.sub(r'\b{}\b'.format(item), r'{}'.format(dictionary[item]), string)
+            pattern = r'\b(\d)?({})\b'.format(item)
+            string = re.sub(pattern, r'\g<1>{}'.format(dictionary[item]), string)
         else:
             string = re.sub(item, dictionary[item], string)
 
@@ -504,8 +505,18 @@ def handle_dialog(req, res, user_storage):
         user_storage['to_log'] = False
         return res, user_storage
 
+    # ответ на ругательства
+    if res.danger:
+        res.set_text('Давайте не будем ругаться!')
+        res.set_buttons(user_storage['suggests'])
+        return res, user_storage
+
     # ответ да 
-    if user_message == 'да' or user_message == 'давай':
+    if user_message in [
+        'да',
+        'давай',
+        'приступим',
+    ]:
         res.set_text('Скажите слово: реши, вычисли или упрости и назовите выражение.')
         return res, user_storage
     # ответ нет
