@@ -586,7 +586,7 @@ def handle_dialog(req, res, user_storage):
 
     # помощь юзеру
     if process.first_word == 'помощь':
-        res.set_text('Я понимаю фразы начинающиеся с команд: ' + ', '.join(HELP_TEXTS) + \
+        res.set_text('Я понимаю команды: ' + ', '.join(HELP_TEXTS) + \
         ', дополненные алгебраическим выражением.\n'+ \
         'Для примеров скажите: Пример и команду.\nЧтобы закончить скажите Выйти или Стоп.')
         res.set_buttons(user_storage['suggests'])
