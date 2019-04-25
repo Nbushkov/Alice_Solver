@@ -1,6 +1,7 @@
 # coding: utf-8
-from sympy import solve, sympify, symbols, simplify
-from mpmath import *
+from __future__ import division
+from sympy import *
+from mpmath  import *
 import random
 import sys
 import re
@@ -175,6 +176,7 @@ HELP_TEXTS = {
     'реши':['5x+12=7', 'cos(y)=sin(y)'],
     'вычисли':['5(76-6)', '2^5*sqrt(16)'],
     'упрости':['(2x-3y)(3y-2x)-12xy'],
+    'разложи':['x**2 + 4xy + 4y**2'],
 }
 # лишие слова, междометия
 UNNECESSARY_WORDS = ['давай', 'на', 'ну', 'а', 'и', 'из', 'от']
@@ -184,10 +186,15 @@ COMMAND_SOLV = ['реши', 'решить',  'решите', 'решение']
 COMMAND_SIMPL = ['упрости', 'упростить', 'упростите', 'ну прости', 'прости', 'опусти']
 # Команды вычисления
 COMMAND_CALC = ['вычисли', 'вычислить', 'сколько', 'найди']
+# Команды разложения на множители
+COMMAND_FACT = ['разложи', 'разложить', 'разложение']
 # ответ на некорректный запрос
-DEFAULT_ANSWER = ['У меня нет ответа.', 'Я просто решаю уравнения.', 'Этого я не понимаю.', 'Я не по этой части.', 'Я понимаю фразы начинающиеся словами: реши, вычисли, упрости.']
+DEFAULT_ANSWER = ['У меня нет ответа.', 'Я просто работаю с выражениями.', 'Этого я не понимаю.', 'Я не по этой части.', 'Я понимаю определенные команды.']
 # точность (число знаков) для округления
 CALC_PRECISION = 3
+
+init_printing() # doctest: +SKIP
+
 '''
 Общие функции 
 '''
@@ -281,6 +288,8 @@ class Processing:
             self._calculate()
         elif self.task == 'simplify':
             self._simplify()
+        elif self.task == 'factorize':
+            self._factorize()
         else: 
             # дефолтный ответ на непонятный запрос
             self.answer = False
@@ -328,6 +337,9 @@ class Processing:
             self.task = 'simplify'
         if any(c in self.equation for c in COMMAND_CALC):
             self.task = 'calculate'
+        if any(c in self.equation for c in COMMAND_FACT):
+            self.task = 'factorize'
+            
         # если неясно и русского текста нет, смотрим по переменным
         if self.task == 'unknown' and not bool(re.search(r'[а-яА-ЯёЁ]', self.equation)):
             var_num = self.check_unknown()
@@ -345,14 +357,10 @@ class Processing:
         eqn = self.check_equality()    
         # проверка числа перемнных  
         var_num = self.check_unknown()
-        # проверка на наличие выражения
-        if self.equation == '':
-            self.error = 1  
         if var_num > 1:
             self.error = 2      
-        # сообщаем об ошибке
-        if bool(self.error):
-            self.answer = random.choice(ERRORS[self.error])
+        # Проверка на ошибки
+        if self.check_errors():
             return
         # если переменных нет, и нет равенства пытаемся вычислить
         if var_num == 0 and eqn == 0:
@@ -363,7 +371,7 @@ class Processing:
             self.move()
         # пытаемся решить
         try:
-            x, y = symbols('x,y')
+            x, y, z, t = symbols('x y z t')
             solution = solve(self.equation, dict=True)
         except NotImplementedError:
             self.answer = 'Такие уравнения я пока решать не умею'
@@ -389,12 +397,8 @@ class Processing:
 
     # Функция вычисления выражения
     def _calculate(self):
-        # проверка на наличие выражения
-        if self.equation == '':
-            self.error = 1 
         # Проверка на ошибки
-        if bool(self.error):
-            self.answer = random.choice(ERRORS[self.error])
+        if self.check_errors():
             return
         # проверка наличия равенства или переменной
         if self.check_equality() == 1 or self.check_unknown() == 1:
@@ -409,12 +413,8 @@ class Processing:
 
     # Функция упрощения выражения
     def _simplify(self):
-        # проверка на наличие выражения
-        if self.equation == '':
-            self.error = 1 
         # Проверка на ошибки
-        if bool(self.error):
-            self.answer = random.choice(ERRORS[self.error])
+        if self.check_errors():
             return
         # проверка равенства 
         if self.check_equality() == 1:
@@ -426,6 +426,16 @@ class Processing:
                 self.answer = rd(self.answer)
             except Exception:
                 self.answer = 'Ошибка в выражении'
+
+    # Функция разложения на множители
+    def _factorize(self):
+        # Проверка на ошибки
+        if self.check_errors():
+            return  
+        try:
+            self.answer = factor(self.equation)
+        except Exception:
+            self.answer = 'Ошибка в выражении'
 
     # Расстановка скобок без вложенности
     def brace_placement(self, is_left=True):
@@ -458,6 +468,17 @@ class Processing:
             return 0
         # есть одна неизвестная
         return 1
+    # Проверка наличия ошибок
+    def check_errors(self):
+        # проверка на наличие выражения
+        if self.equation == '':
+            self.error = 1 
+        # Проверка на ошибки
+        if bool(self.error):
+            self.answer = random.choice(ERRORS[self.error])
+            return True
+        # ошибок нет    
+        return False
 
              
 # Функция для непосредственной обработки диалога.
@@ -492,8 +513,7 @@ def handle_dialog(req, res, user_storage):
     user_message = req.original.lower().strip()
 
     if not process.first_word:
-        user_answer = 'Привет!\nЯ могу решать уравнения с одной неизвестной x или y,'+ \
-        ' вычислять или упрощать выражения.\nПриступим?'
+        user_answer = 'Привет!\nЯ работаю с алгебраическими выражениями. Назовите команду или скажите Помощь.'
         res.set_text(user_answer)
         res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
         res.set_buttons(user_storage['suggests'])
@@ -517,7 +537,7 @@ def handle_dialog(req, res, user_storage):
         'давай',
         'приступим',
     ]:
-        res.set_text('Скажите слово: реши, вычисли или упрости и назовите выражение.')
+        res.set_text('Скажите слово: '+', '.join(HELP_TEXTS)+' и назовите выражение.')
         return res, user_storage
     # ответ нет
     if user_message == 'нет':
@@ -566,9 +586,9 @@ def handle_dialog(req, res, user_storage):
 
     # помощь юзеру
     if process.first_word == 'помощь':
-        res.set_text('Я понимаю фразы начинающиеся с ключевых слов: ' + ', '.join(HELP_TEXTS) + \
+        res.set_text('Я понимаю фразы начинающиеся с команд: ' + ', '.join(HELP_TEXTS) + \
         ', дополненные алгебраическим выражением.\n'+ \
-        'Для примеров скажите: Пример и ключевое слово.\nЧтобы закончить скажите Выйти или Стоп.')
+        'Для примеров скажите: Пример и команду.\nЧтобы закончить скажите Выйти или Стоп.')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
 
@@ -576,7 +596,7 @@ def handle_dialog(req, res, user_storage):
     if process.first_word == 'пример':
         s = user_command.split(' ', 2)
         if len(s) == 1 or s[1] not in HELP_TEXTS:
-            user_answer = "Укажите ключевое слово для примера: "+', '.join(HELP_TEXTS)
+            user_answer = "Укажите команду для примера: "+', '.join(HELP_TEXTS)
         else:
             user_answer = s[1]+' '+' или '.join(HELP_TEXTS[s[1]])
 
