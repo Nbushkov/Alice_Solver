@@ -354,7 +354,7 @@ class Processing:
             elif self.equation != '':
                 self.task = 'simplify'
         # убираем оставшийся русский текст
-        self.equation = re.sub('[а-яА-ЯёЁ]', '', self.equation)
+        self.equation = re.sub('[а-яА-ЯёЁ]', '', self.equation).strip()
 
     # Функция для решения уравнения
     def _solve(self):
@@ -628,7 +628,7 @@ def handle_dialog(req, res, user_storage):
         process = Processing(user_message)
         process.process()
 
-    user_answer = str(process.answer if process.answer else random.choice(DEFAULT_ANSWER)+' '+DEFAULT_ENDING)
+    user_answer = str(random.choice(DEFAULT_ANSWER)+' '+DEFAULT_ENDING if process.answer is False else process.answer)
 
     res.set_text(user_answer)
     res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
@@ -643,6 +643,6 @@ if __name__ == '__main__':
     res.process()
     if bool(res.error):
         res.answer = random.choice(ERRORS[res.error])
-    user_answer = str(res.answer if res.answer else random.choice(DEFAULT_ANSWER))
+    user_answer = str(random.choice(DEFAULT_ANSWER) if res.answer is False else res.answer)
     print(user_answer)
   
