@@ -517,7 +517,7 @@ def handle_dialog(req, res, user_storage):
     user_message = req.original.lower().strip()
 
     if not process.first_word:
-        user_answer = 'Привет!\nЯ помогаю решать задачи по алгебре. Рассказать вам как пользоваться моими умениями?'
+        user_answer = 'Привет!\nЯ помогаю решать задачи по алгебре. Чтобы узнать как пользоваться моими умениями скажите Помощь.'
         res.set_text(user_answer)
         res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
         res.set_buttons(user_storage['suggests'])
@@ -597,7 +597,7 @@ def handle_dialog(req, res, user_storage):
             'скобке',
             'скобку'
         ]:
-            user_answer = 'Если в вашем выражении нет вложенных скобок, то при голосовом вводе можно просто говорить скобка.\n'+\
+            user_answer = 'Если в вашем выражении нет вложенных скобок, то при голосовом вводе любой скобки можно просто говорить скобка.\n'+\
             'Если скобки вложенные то нужно говорить открыть скобку и закрыть скобку соответственно.'
         elif s[1] in [
             'функции',
