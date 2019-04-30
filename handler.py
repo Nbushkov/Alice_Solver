@@ -142,7 +142,7 @@ ERRORS = {
     2:['Уравнение должно содержать только одну переменную x,y или z', 'В вашем уравнении больше одной неизвестной'],
     3:['Уравнение может содержать только один знак равенства', 'В вашем уравнении несколько знаков равенства'],
     4:['В уравнении непарные скобки', 'Число отрывающихся скобок не равно числу закрывающихся'],
-    5:['В выражении есть русские буквы. Попробуйте повторить', 'Выражение содержит русский текст. Попробуйте перефразировать'],
+    5:['Уравнение должно содержать переменную x,y или z.', 'Похоже в вашем уравнении нет неизвестной', 'Я могу решать уравнения с x,y или z. Попробуйте перефразировать'],
 }
 # словарь озвучки результата
 REPLACE_TTS = {
@@ -286,6 +286,7 @@ class Processing:
     # Главный обработчик
     def process(self):
         self._prepare()
+        #print(self.equation)
         if self.task == 'solve':
             self._solve()
         elif self.task == 'calculate':
@@ -362,7 +363,9 @@ class Processing:
         # проверка числа перемнных  
         var_num = self.check_unknown()
         if var_num > 1:
-            self.error = 2      
+            self.error = 2 
+        if var_num == 0 and eqn == 1:
+            self.error = 5
         # Проверка на ошибки
         if self.check_errors():
             return
@@ -442,11 +445,14 @@ class Processing:
             self.answer = 'Ошибка в выражении'
 
     # Расстановка скобок без вложенности
-    def brace_placement(self, is_left=True):
-        if 'скобка' in self.equation:
+    def brace_placement(self):
+        start = self.equation.find('скобка')
+        if start > -1:
+            # определяем тип скобки исходя из имеющихся
+            is_left = bool(self.equation[:start].count('(') <= self.equation[:start].count(')'))
             brace = '(' if is_left else ')'
             self.equation = self.equation.replace('скобка', brace, 1).strip()
-            self.brace_placement(not is_left)
+            self.brace_placement()
 
     # перенос в одну часть (приравнивание к 0)
     def move(self):
@@ -454,7 +460,7 @@ class Processing:
         self.equation = parts[0].strip() + '-(' + parts[1].strip() + ')'
     # Определение числа вхождений равенства
     def check_equality(self):
-        return self.equation.count("=")
+        return self.equation.count('=')
     # Проверка парности скобок
     def check_pairing(self):
         return self.equation.count('(') == self.equation.count(')')
