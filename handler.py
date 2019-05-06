@@ -59,6 +59,7 @@ REPLACE_ACTIONS = {
     'деленное':'/',
     'делить':'/',
     'раздели':'/',
+    'делим':'/',
     '÷':'/',
     ':':'/',
     ',':'.',
@@ -174,6 +175,18 @@ REPLACE_TTS = {
     '\)':' закрыть скобку ',
     '\n':' - - ',
 }
+# словарь больших чисел
+REPLACE_LARGE_TTS = {
+    '10000000000000000000000000000000000': 'дециллион',
+    '10000000000000000000000000000000': 'нониллион',
+    '10000000000000000000000000000': 'октиллион',
+    '10000000000000000000000000': 'септиллион',
+    '10000000000000000000000': 'секстиллион',
+    '10000000000000000000': 'квинтиллион',
+    '10000000000000000': 'квадриллион',
+    '10000000000000': 'триллион',
+    '10000000000': 'миллиард',
+}
 # словарь примеров
 HELP_TEXTS = {
     'реши':['5x+12=7', 'Я могу решать уравнения с одной неизвестной x,y или z.\n' +\
@@ -248,14 +261,12 @@ def insert_function(fpattern, fname, string):
         index2 = start + nam_len + 1
         # ищем позицию для закрытия скобки
         # первый непробельный и не знаки действий символ
-        first = re.search(r"[^-+*/\s]", string[index2:]).start()
+        nonspace = re.search(r"[^-+*/\s]", string[index2:])
+        first = len(string)-index2 if nonspace is None else nonspace.start()
         index3 = index2 + first + 1
         # первый пробел после непробельного или конец строки
         space = re.search(r"\s", string[index3:])
-        if space is None:
-            end = len(string)
-        else:
-            end = index3 + space.start()
+        end = len(string) if space is None else index3 + space.start()
         string = string[:end] + ')' + string[end:]
     
     # если паттерн есть еще, повторяем
@@ -376,9 +387,11 @@ class Processing:
         # переносим все в левую часть (приравниваем к 0)
         if eqn == 1:
             self.move()
-        # пытаемся решить
+        # пытаемся решить       
         try:
             x, y, z = symbols('x y z')
+            # сначала упростим чтоб не нагромождать
+            self.equation = simplify(self.equation)
             solution = solve(self.equation, dict=True)
         except NotImplementedError:
             self.answer = 'Такие уравнения я пока решать не умею'
@@ -518,7 +531,8 @@ def handle_dialog(req, res, user_storage):
     user_message = req.original.lower().strip()
 
     if not process.first_word:
-        user_answer = 'Привет!\nЯ помогаю решать задачи по алгебре. Я понимаю выражения с переменными x, y или z. Чтобы узнать подробнее скажите Помощь.'
+        user_answer = 'Привет!\nЯ помогаю решать задачи по алгебре. Я понимаю выражения с переменными x, y или z.\n'+\
+        'Чтобы узнать подробнее скажите Помощь. Чтобы закончить скажите выйти или стоп.'
         res.set_text(user_answer)
         res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
         res.set_buttons(user_storage['suggests'])
@@ -535,7 +549,11 @@ def handle_dialog(req, res, user_storage):
         res.set_text('Давайте не будем ругаться!')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
-
+    # ответ почему
+    if user_message == 'почему':
+        res.set_text('По правилам алгебры. Я вычисляю результат, а не рассказываю как решать.')
+        res.set_buttons(user_storage['suggests'])
+        return res, user_storage
     # ответ нет
     if user_message == 'нет':
         res.set_text('На нет и суда нет. '+DEFAULT_ENDING)
@@ -560,13 +578,23 @@ def handle_dialog(req, res, user_storage):
     # если похвалили
     if process.first_word in [
         'правильно',
-        'офигеть',
+        'верно',
         'молодец',
-        'хорошо',
         'спасибо',
     ]:
         # Благодарим пользователя
         res.set_text('Спасибо, я стараюсь!')
+        res.set_buttons(user_storage['suggests'])
+        return res, user_storage
+
+    # если не согласны
+    if process.first_word in [
+        'неправильно',
+        'неверно',
+        'ошибка',
+    ]:
+        # предлагаем повторить
+        res.set_text('Возможно я не расслышал, попробуйте повторить.')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
 
@@ -582,7 +610,11 @@ def handle_dialog(req, res, user_storage):
         return res, user_storage
 
     # помощь юзеру и примеры
-    if process.first_word == 'помощь':
+    if process.first_word in [
+        'помощь',
+        'помоги',
+        'помогите',
+    ]:
         s = user_command.split(' ', 2)
         if len(s) == 1:
             user_answer = 'Я умею решать уравнения с одной неизвестной x,y или z, упрощать и вычислять алгебраические выражения.\n'+\
@@ -637,7 +669,10 @@ def handle_dialog(req, res, user_storage):
     user_answer = str(random.choice(DEFAULT_ANSWER)+' '+DEFAULT_ENDING if process.answer is False else process.answer)
 
     res.set_text(user_answer)
-    res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
+    # озвучка результата
+    tts = find_replace_multi(user_answer, REPLACE_TTS)
+    tts = find_replace_multi(user_answer, REPLACE_LARGE_TTS, True)
+    res.set_tts(tts)
     res.set_buttons(user_storage['suggests'])
 
     return res, user_storage
