@@ -663,7 +663,7 @@ def handle_dialog(req, res, user_storage):
     process.process()
     
     # Если ошибка попробуем с исходным сообщением
-    if isinstance(process.answer, str) and process.answer.startswith('Ошибка'):
+    if isinstance(process.answer, str) and process.answer.startswith('Ошибка') and len(user_message) > 1:
         process = Processing(user_message)
         process.process()
 
