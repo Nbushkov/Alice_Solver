@@ -48,17 +48,22 @@ REPLACE_ACTIONS = {
     'плюс':'+', 'минус':'-', 
     'прибавить':'+',  
     'отнять':'-', 
+    'помноженное':'*',
     'помножить':'*',
     'умноженное':'*',
     'умножить':'*',
+    'умножаем':'*',
+    'умножим':'*',
     'умножь':'*',
     '×':'*',
     '−':'-',
     '–':'-',   
     'разделить':'/',
     'поделить':'/',
+    'поделенное':'/',
     'деленное':'/',
     'делить':'/',
+    'разделим':'/',
     'раздели':'/',
     'делим':'/',
     '÷':'/',
@@ -89,6 +94,7 @@ REPLACE_ACTIONS = {
 }
 # словарь замен функций
 REPLACE_FUNCTIONS = {
+    'квадратный корень':'sqrt',
     'корень':'sqrt',
     'модуль':'abs',
     'косинус':'cos',
@@ -326,9 +332,11 @@ class Processing:
         # после чисел
         self.equation = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', self.equation)
         # перед скобкой
-        self.equation = re.sub(r'([x,y])\s*\(', r'\1*(', self.equation)
+        self.equation = re.sub(r'([x,y,z])\s*\(', r'\1*(', self.equation)
         # между скобками
         self.equation = re.sub(r'\)\s*\(', r')*(', self.equation)
+        # после скобки
+        self.equation = re.sub(r'\)\s*([x,y,z,\d]){1}', r')*\1', self.equation)
         # ставим функции, если есть
         for func in REPLACE_FUNCTIONS.keys():
             self.equation = insert_function(func, REPLACE_FUNCTIONS[func], self.equation)
@@ -347,6 +355,12 @@ class Processing:
         eqn = self.check_equality()
         if eqn > 1:
             self.error = 3   
+        
+        # убираем оставшийся русский текст
+        self.equation = re.sub('[а-яА-ЯёЁ]', '', self.equation).strip()
+        # если ничего не осталось то дефолтный ответ
+        if self.equation == '':
+            return
         # определяем тип задачи
         if any(c in self.equation for c in COMMAND_SOLV) or eqn == 1:
             self.task = 'solve'
@@ -357,8 +371,8 @@ class Processing:
         if any(c in self.equation for c in COMMAND_FACT):
             self.task = 'factorize'
             
-        # если неясно и русского текста нет, смотрим по переменным
-        if self.task == 'unknown' and not bool(re.search(r'[а-яА-ЯёЁ]', self.equation)):
+        # если неясно, смотрим по переменным
+        if self.task == 'unknown':
             var_num = self.check_unknown()
             if var_num == 1:
                 self.task = 'solve'
@@ -366,9 +380,7 @@ class Processing:
                 self.task = 'calculate'
             elif self.equation != '':
                 self.task = 'simplify'
-        # убираем оставшийся русский текст
-        self.equation = re.sub('[а-яА-ЯёЁ]', '', self.equation).strip()
-
+        
     # Функция для решения уравнения
     def _solve(self):
         eqn = self.check_equality()    
@@ -397,7 +409,7 @@ class Processing:
         except NotImplementedError:
             self.answer = 'Такие уравнения я пока решать не умею'
         except Exception:
-            self.answer = 'Ошибка в уравнении'
+            self.answer = 'Ошибка в уравнении: ' + self.equation
         else:
             if not solution:
                 self.answer = 'Нет решений'
@@ -430,7 +442,7 @@ class Processing:
                 # Округляем
                 self.answer = rd(self.answer)
             except Exception:
-                self.answer = 'Ошибка в выражении'
+                self.answer = 'Ошибка в выражении: ' + self.equation
 
     # Функция упрощения выражения
     def _simplify(self):
@@ -446,7 +458,7 @@ class Processing:
                 # Округляем
                 self.answer = rd(self.answer)
             except Exception:
-                self.answer = 'Ошибка в выражении'
+                self.answer = 'Ошибка в выражении: ' + self.equation
 
     # Функция разложения на множители
     def _factorize(self):
@@ -456,7 +468,7 @@ class Processing:
         try:
             self.answer = factor(self.equation)
         except Exception:
-            self.answer = 'Ошибка в выражении'
+            self.answer = 'Ошибка в выражении: ' + self.equation
 
     # Расстановка скобок без вложенности
     def brace_placement(self):
@@ -615,6 +627,7 @@ def handle_dialog(req, res, user_storage):
         'помощь',
         'помоги',
         'помогите',
+        'овощ',
     ]:
         s = user_command.split(' ', 2)
         if len(s) == 1:
@@ -672,7 +685,7 @@ def handle_dialog(req, res, user_storage):
     res.set_text(user_answer)
     # озвучка результата
     tts = find_replace_multi(user_answer, REPLACE_TTS)
-    tts = find_replace_multi(user_answer, REPLACE_LARGE_TTS, True)
+    tts = find_replace_multi(tts, REPLACE_LARGE_TTS, True)
     res.set_tts(tts)
     res.set_buttons(user_storage['suggests'])
 
