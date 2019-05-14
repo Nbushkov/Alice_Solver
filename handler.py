@@ -261,7 +261,8 @@ def insert_function(fpattern, fname, string):
     nam_len = len(fname)
     index1 = start + pat_len
     # делаем замену в зависимости от наличия скобки
-    if '(' == re.search(r"\S", string[index1:]).group():
+    sko = re.search(r"\S", string[index1:])
+    if sko is not None and '(' == sko.group():
         string = string.replace(fpattern, fname, 1)
     else:
         string = string.replace(fpattern, fname+'(', 1)
@@ -325,24 +326,10 @@ class Processing:
         self.equation = find_replace_multi(self.equation, REPLACE_BRACE)
         self.equation = find_replace_multi(self.equation, REPLACE_ACTIONS)
         # ставим скобки если остались
-        self.brace_placement()
-        # убираем пробелы между числами
-        self.equation = re.sub('(?<=\d)+ (?=\d)+', '', self.equation)
-        # добавляем умножение
-        # после чисел
-        self.equation = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', self.equation)
-        # перед скобкой
-        self.equation = re.sub(r'([x,y,z])\s*\(', r'\1*(', self.equation)
-        # между скобками
-        self.equation = re.sub(r'\)\s*\(', r')*(', self.equation)
-        # после скобки
-        self.equation = re.sub(r'\)\s*([x,y,z,\d]){1}', r')*\1', self.equation)
+        self.brace_placement()    
         # ставим функции, если есть
         for func in REPLACE_FUNCTIONS.keys():
             self.equation = insert_function(func, REPLACE_FUNCTIONS[func], self.equation)
-        # добавляем умножение
-        # после чисел
-        self.equation = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', self.equation)
         # Заменяем i на I для корректной обработки мнимой единицы
         self.equation = re.sub(r"\bi\b","I" ,self.equation)
         # Заменяем e на E для корректной обработки числа e
@@ -356,11 +343,6 @@ class Processing:
         if eqn > 1:
             self.error = 3   
         
-        # убираем оставшийся русский текст
-        self.equation = re.sub('[а-яА-ЯёЁ]', '', self.equation).strip()
-        # если ничего не осталось то дефолтный ответ
-        if self.equation == '':
-            return
         # определяем тип задачи
         if any(c in self.equation for c in COMMAND_SOLV) or eqn == 1:
             self.task = 'solve'
@@ -370,7 +352,24 @@ class Processing:
             self.task = 'calculate'
         if any(c in self.equation for c in COMMAND_FACT):
             self.task = 'factorize'
-            
+
+        # убираем оставшийся русский текст
+        self.equation = re.sub('[а-яА-ЯёЁ]', '', self.equation).strip()
+        # если ничего не осталось то дефолтный ответ
+        if self.equation == '':
+            return
+        # убираем пробелы между числами
+        self.equation = re.sub(r'(\d)\s+(\d)', r'\1\2', self.equation)
+        #''.join(e for e in self.equation if not e.isspace()) - все пробелы
+        # добавляем умножение после чисел
+        self.equation = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', self.equation)
+        # перед скобкой
+        self.equation = re.sub(r'([x,y,z])\s*\(', r'\1*(', self.equation)
+        # между скобками
+        self.equation = re.sub(r'\)\s*\(', r')*(', self.equation)
+        # после скобки
+        self.equation = re.sub(r'\)\s*([x,y,z,\d]){1}', r')*\1', self.equation)
+        
         # если неясно, смотрим по переменным
         if self.task == 'unknown':
             var_num = self.check_unknown()
