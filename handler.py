@@ -136,10 +136,10 @@ REPLACE_BRACE = {
     'скобочки':'скобка',
     'скобочку':'скобка',
     'скобу':'скобка',
-    'открыть скобка':'(',
-    'закрыть скобка':')',
     'скобка открыть':'(',
     'скобка закрыть':')',
+    'открыть скобка':'(',
+    'закрыть скобка':')',
     'левая скобка':'(',
     'правая скобка':')',
 }
@@ -269,14 +269,19 @@ def insert_function(fpattern, fname, string):
         index2 = start + nam_len + 1
         # ищем позицию для закрытия скобки
         # первый непробельный и не знаки действий символ
-        nonspace = re.search(r"[^-+*/\s]", string[index2:])
-        first = len(string)-index2 if nonspace is None else nonspace.start()
-        index3 = index2 + first + 1
+        nonspace = re.search(r"[^-+*/\s]", string[index2:])       
+        if nonspace is not None:
+            first = nonspace.start()
+            index3 = index2 + first
+            # убираем лишние пробелы после открывающей скобки
+            string = string[:index2] + string[index3:]
+            index3 = index2
+        else:
+            index3 = len(string)
         # первый пробел после непробельного или конец строки
         space = re.search(r"\s", string[index3:])
         end = len(string) if space is None else index3 + space.start()
         string = string[:end] + ')' + string[end:]
-    
     # если паттерн есть еще, повторяем
     if fpattern in string:
         string = insert_function(fpattern, fname, string)
@@ -326,7 +331,7 @@ class Processing:
         self.equation = find_replace_multi(self.equation, REPLACE_BRACE)
         self.equation = find_replace_multi(self.equation, REPLACE_ACTIONS)
         # ставим скобки если остались
-        self.brace_placement()    
+        self.brace_placement()  
         # ставим функции, если есть
         for func in REPLACE_FUNCTIONS.keys():
             self.equation = insert_function(func, REPLACE_FUNCTIONS[func], self.equation)
