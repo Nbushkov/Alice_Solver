@@ -409,6 +409,10 @@ class Processing:
             x, y, z = symbols('x y z')
             # сначала упростим чтоб не нагромождать
             self.equation = simplify(self.equation)
+            # проверка на вырождение уравнения
+            if self.equation.equals(0):
+                self.answer = 'Ответ любое число'
+                return
             solution = solve(self.equation, dict=True)
         except NotImplementedError:
             self.answer = 'Такие уравнения я пока решать не умею'
