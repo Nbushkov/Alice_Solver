@@ -255,6 +255,11 @@ def find_replace_multi(string, dictionary, use_word = False):
 
     return str(string)
 
+# исходное выражение выбросим лишние слова
+def clear_str(string):
+    for item in UNNECESSARY_WORDS:
+        string = re.sub(r'\b{}\b'.format(item), '', string)
+    return string.strip()
 # Вставка математиченской функции в строку
 def insert_function(fpattern, fname, string):
     start = string.find(fpattern)
@@ -546,13 +551,12 @@ def handle_dialog(req, res, user_storage):
     # данные о команде, убираем лишнее
     user_command = req.command.lower().replace('спроси знайка ответит', '').strip()
     # исходное выражение выбросим лишние слова
-    for item in UNNECESSARY_WORDS:
-        user_command = re.sub(r'\b{}\b'.format(item), '', user_command)
-    user_command = user_command.strip()
+    user_command = clear_str(user_command)
     # Подготавливаем класс обработчик
     process = Processing(user_command)
     # данные о исходном сообщении
     user_message = req.original.lower().strip()
+    user_message = clear_str(user_message)
 
     if not process.first_word:
         user_answer = 'Привет!\nЯ помогаю решать задачи по алгебре. Я понимаю выражения с переменными x, y или z.\n'+\
