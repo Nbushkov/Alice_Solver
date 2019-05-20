@@ -71,9 +71,12 @@ REPLACE_ACTIONS = {
     ',':'.',
     'xy':'x*y',
     'yx':'y*x',
+    'x y':'x*y',
+    'y x':'y*x',
     'равняется':'=',
     'равно':'=',
     'равен':'=',
+    'равняет':'=',
     ' в квадрате':'**2',
     'квадрате':'**2',
     ' в кубе':'**3',
@@ -293,10 +296,6 @@ def insert_function(fpattern, fname, string):
 '''
 class Processing:
     def __init__(self, equation):
-        # исходное выражение выбросим лишлие слова
-        for item in UNNECESSARY_WORDS:
-            equation = re.sub(r'\b{}\b'.format(item), '', equation)
-        equation = equation.strip()
         # выделяем первое слово в команде
         parts = equation.split(' ', 1)
         self.first_word = parts[0]
@@ -546,6 +545,10 @@ def handle_dialog(req, res, user_storage):
     user_storage['to_log'] = True
     # данные о команде, убираем лишнее
     user_command = req.command.lower().replace('спроси знайка ответит', '').strip()
+    # исходное выражение выбросим лишние слова
+    for item in UNNECESSARY_WORDS:
+        user_command = re.sub(r'\b{}\b'.format(item), '', user_command)
+    user_command = user_command.strip()
     # Подготавливаем класс обработчик
     process = Processing(user_command)
     # данные о исходном сообщении
