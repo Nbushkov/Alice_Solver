@@ -35,7 +35,10 @@ REPLACE_DIGITS = {
     'октиллион':'10**27',
     'нониллион':'10**30',
     'дециллион':'10**33',
-    'х':'x', 'у':'y', 'зет':'z', 'зед':'z', 'зэт':'z', 'зэд':'z', 
+    'икс':'x', 'игрек':'y', 
+    'игрик':'y', 
+    'х':'x', 'у':'y', 
+    'зет':'z', 'зед':'z', 'зэт':'z', 'зэд':'z', 
     'число пи':'pi',
     'число е':'E', 
     'число и':'I',
@@ -43,8 +46,7 @@ REPLACE_DIGITS = {
     'е':'E', 
 }
 # словарь замен 
-REPLACE_ACTIONS = {
-    'икс':'x', 'игрек':'y', 
+REPLACE_ACTIONS = {   
     'плюс':'+', 'минус':'-', 
     'прибавить':'+',  
     'отнять':'-', 
@@ -334,6 +336,8 @@ class Processing:
         self.equation = find_replace_multi(self.equation, REPLACE_DIGITS, True)
         self.equation = find_replace_multi(self.equation, REPLACE_BRACE)
         self.equation = find_replace_multi(self.equation, REPLACE_ACTIONS)
+        # обработка составного числа с дробной частью (со словом целых)
+        self.equation = re.sub(r'(\d+\)?) целых ([\d/]+)' , r'(\1+\2)', self.equation)
         # ставим скобки если остались
         self.brace_placement()  
         # ставим функции, если есть
