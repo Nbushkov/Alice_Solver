@@ -272,9 +272,8 @@ def is_digit(string):
 def rd(x):
     if not is_digit(x):
         return x
-    if int(x) == x:
-        return int(x)
-    return x.round(CALC_PRECISION)
+    x = x.round(CALC_PRECISION)
+    return str(x).rstrip('0').rstrip('.')
 
 # Функция замены по словарю 
 def find_replace_multi(string, dictionary, use_word = False):
@@ -308,7 +307,7 @@ def insert_function(fpattern, fname, string):
         string = string.replace(fpattern, fname+'(', 1)
         index2 = start + nam_len + 1
         # ищем позицию для закрытия скобки
-        # первый непробельный и первый значимый не знаки действий символ
+        # первый непробельный и первый значимый (не знаки действий) символ
         nonspace = re.search(r"\S", string[index2:])
         datastart = re.search(r"[^-+*/\s]", string[index2:])       
         if datastart is not None:
