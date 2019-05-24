@@ -272,6 +272,8 @@ def is_digit(string):
 def rd(x):
     if not is_digit(x):
         return x
+    if x.equals(0):
+        return 0
     x = x.round(CALC_PRECISION)
     return str(x).rstrip('0').rstrip('.')
 
