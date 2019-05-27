@@ -132,6 +132,10 @@ REPLACE_FUNCTIONS = {
     'квадратный корень':'sqrt',
     'корень':'sqrt',
     'модуль':'abs',
+    'арккосинус':'acos',
+    'арксинус':'asin',
+    'арккотангенс':'acot',
+    'арктангенс':'atan',
     'косинус':'cos',
     'синус':'sin',
     'котангенс':'cot',
@@ -320,7 +324,7 @@ def insert_function(fpattern, fname, string):
         else:
             index3 = len(string)
         # первый пробел после непробельного или конец строки
-        space = re.search(r"\s", string[index3:])
+        space = re.search(r"[\s=]", string[index3:])
         end = len(string) if space is None else index3 + space.start()
         string = string[:end] + ')' + string[end:]
     # если паттерн есть еще, повторяем
@@ -403,8 +407,7 @@ class Processing:
         if self.equation == '':
             return
         # убираем пробелы между числами
-        self.equation = re.sub(r'(\d)\s+(\d)', r'\1\2', self.equation)
-        #''.join(e for e in self.equation if not e.isspace()) - все пробелы
+        self.equation = re.sub('(?<=\d)\s+(?=\d)', '', self.equation)
         # добавляем умножение после чисел
         self.equation = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', self.equation)
         # перед скобкой
