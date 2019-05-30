@@ -260,18 +260,18 @@ DEFAULT_ANSWER = ['У меня нет ответа.', 'Я просто рабо�
 # побуждающая прибавка к тексту
 DEFAULT_ENDING = 'Назовите команду или скажите Помощь.'
 # точность (число знаков) для округления
-CALC_PRECISION = 3
+CALC_PRECISION = 4
 
 '''
 Общие функции 
 '''
 # Классическое Округление (чтоб не было лишних нулей)
-def rd(x):
+def rd(x, prec=50):
     if not isinstance(x, Float):
         return x
     if x.equals(0):
         return 0
-    x = x.round(CALC_PRECISION)
+    x = x.round(prec)
     return str(x).rstrip('0').rstrip('.')
 
 # Функция замены по словарю 
@@ -466,11 +466,11 @@ class Processing:
                         # проверка если слишком длинный ответ, вычисляем
                         if len(str(value)) > 50:
                             ans = Processing(str(value))
-                            ans._calculate(4)
+                            ans._calculate(CALC_PRECISION)
                             res.append(str(key) + '=' + str(ans.answer))
                         else:
                             # Округляем
-                            value = rd(value)
+                            value = rd(value, CALC_PRECISION)
                             res.append(str(key) + '=' + str(value))
                 self.answer = 'Ответ %s' % (' или '.join(res))
 
@@ -486,7 +486,9 @@ class Processing:
             try:
                 self.answer = sympify(self.equation).evalf(prec)
                 # Округляем
-                self.answer = rd(self.answer)
+                if prec == 50:
+                    prec = 10
+                self.answer = rd(self.answer, prec)
             except Exception:
                 self.answer = 'Ошибка в выражении: ' + self.equation
 
@@ -502,7 +504,7 @@ class Processing:
             try:
                 self.answer = simplify(self.equation)
                 # Округляем
-                self.answer = rd(self.answer)
+                self.answer = rd(self.answer, CALC_PRECISION)
             except Exception:
                 self.answer = 'Ошибка в выражении: ' + self.equation
 
