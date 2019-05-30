@@ -56,6 +56,7 @@ REPLACE_DIGITS = {
     'квадриллион':'10**15',
     'квинтиллион':'10**18',
     'секстиллион':'10**21',
+    'триллиард':'10**21',
     'сиксилион':'10**21',
     'сиксиллион':'10**21',
     'септиллион':'10**24',
@@ -261,20 +262,9 @@ CALC_PRECISION = 3
 '''
 Общие функции 
 '''
-# Проверка строки на число
-def is_digit(string):
-    string = str(string)
-    if string.isdigit():
-       return True
-    else:
-        try:
-            float(string)
-            return True
-        except (TypeError, ValueError):
-            return False
 # Классическое Округление (чтоб не было лишних нулей)
 def rd(x):
-    if not is_digit(x):
+    if not x.is_number:
         return x
     if x.equals(0):
         return 0
@@ -359,14 +349,13 @@ class Processing:
         elif self.task == 'simplify':
             self._simplify()
         elif self.task == 'factorize':
-            self._factorize()
-        else: 
-            # дефолтный ответ на непонятный запрос
-            self.answer = False
+            self._factorize()           
 
     # Предварительная подготовка выражения
     def _prepare(self):
         self.error = 0
+        # дефолтный ответ на непонятный запрос
+        self.answer = False
         # Замена слов в тексте на переменные и цифры
         self.equation = find_replace_multi(self.equation, REPLACE_DIGITS, True)
         self.equation = find_replace_multi(self.equation, REPLACE_BRACE)
@@ -400,7 +389,10 @@ class Processing:
             self.task = 'calculate'
         if any(c in self.equation for c in COMMAND_FACT):
             self.task = 'factorize'
-
+        # Определяем число русских слов в выражении, для предположения что это задача
+        if len(re.findall(r'[а-яё]+', self.equation, re.I)) > 7:
+            self.answer = 'Похоже на условие задачи, я работаю только с алгебраическими выражениями.'
+            return
         # убираем оставшийся русский текст
         self.equation = re.sub('[а-яА-ЯёЁ]', '', self.equation).strip()
         # если ничего не осталось то дефолтный ответ
@@ -417,7 +409,7 @@ class Processing:
         # после скобки
         self.equation = re.sub(r'\)\s*([x,y,z,\d]){1}', r')*\1', self.equation)
         # убираем лишние плюсы и равенства (по краям)
-        self.equation = self.equation.strip('+').strip('=')
+        self.equation = self.equation.strip('+= */').rstrip('-')
         # если неясно, смотрим по переменным
         if self.task == 'unknown':
             var_num = self.check_unknown()
@@ -720,7 +712,7 @@ def handle_dialog(req, res, user_storage):
     if process.first_word in [
         'выйти',
         'стоп',
-        'хватит'
+        'пока'
     ]:
         # Пользователь закончил, прощаемся.
         res.set_text('Приходите ещё, порешаем!')
