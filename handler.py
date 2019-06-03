@@ -460,18 +460,16 @@ class Processing:
             if not solution:
                 self.answer = 'Нет решений'
             else:
+
                 res = []
                 for sol in solution:
                     for key, value in sol.items():
                         # проверка если слишком длинный ответ, вычисляем
-                        if len(str(value)) > 50:
-                            ans = Processing(str(value))
-                            ans._calculate(CALC_PRECISION)
-                            res.append(str(key) + '=' + str(ans.answer))
-                        else:
-                            # Округляем
-                            value = rd(value, CALC_PRECISION)
-                            res.append(str(key) + '=' + str(value))
+                        if len(str(value)) > 40 or 'CRootOf' in str(value):
+                            value = value.evalf(CALC_PRECISION)
+                        # Округляем
+                        value = rd(value, CALC_PRECISION)
+                        res.append(str(key) + '=' + str(value))
                 self.answer = 'Ответ %s' % (' или '.join(res))
 
     # Функция вычисления выражения
@@ -643,6 +641,7 @@ def handle_dialog(req, res, user_storage):
     if process.first_word in [
         'правильно',
         'верно',
+        'красавчик',
         'молодец',
         'спасибо',
     ]:
@@ -677,8 +676,7 @@ def handle_dialog(req, res, user_storage):
     if process.first_word in [
         'помощь',
         'помоги',
-        'помогите',
-        'овощ',
+        'что ты умеешь',
     ]:
         s = user_command.split(' ', 2)
         if len(s) == 1:
