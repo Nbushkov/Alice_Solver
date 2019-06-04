@@ -281,8 +281,8 @@ def rd(x, prec=50):
 def find_replace_multi(string, dictionary, use_word = False):
     for item in dictionary.keys():
         if use_word:
-            pattern = r'\b(\d)?({})\b'.format(item)
-            string = re.sub(pattern, r'\g<1>{}'.format(dictionary[item]), string)
+            pattern = r'\b({})\b'.format(item)
+            string = re.sub(pattern, r'{}'.format(dictionary[item]), string)
         else:
             string = re.sub(item, dictionary[item], string)
 
@@ -669,6 +669,7 @@ def handle_dialog(req, res, user_storage):
         'привет',
         'ладно',
         'пожалуйста',
+        'да',
     ]:
         # отвечаем аналогично
         res.set_text('Ну '+process.first_word)
@@ -752,5 +753,8 @@ if __name__ == '__main__':
     if bool(res.error):
         res.answer = random.choice(ERRORS[res.error])
     user_answer = str(random.choice(DEFAULT_ANSWER) if res.answer is False else res.answer)
+    tts = find_replace_multi(user_answer, REPLACE_TTS)
+    tts = find_replace_multi(tts, REPLACE_LARGE_TTS, True)
     print(user_answer)
+    print(tts)
   
