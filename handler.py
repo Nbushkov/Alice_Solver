@@ -486,7 +486,7 @@ class Processing:
             self._solve()
         else:    
             try:
-                self.answer = sympify(self.equation).evalf(prec)
+                self.answer = simplify(self.equation).evalf(prec)
                 # Округляем
                 if prec == 50:
                     prec = 10
