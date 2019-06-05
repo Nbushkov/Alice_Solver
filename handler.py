@@ -195,6 +195,7 @@ ERRORS = {
     3:['Уравнение может содержать только один знак равенства', 'В вашем уравнении несколько знаков равенства'],
     4:['В уравнении непарные скобки', 'Число отрывающихся скобок не равно числу закрывающихся'],
     5:['Уравнение должно содержать переменную x,y или z.', 'Похоже в вашем уравнении нет неизвестной', 'Я могу решать уравнения с x,y или z. Попробуйте перефразировать'],
+    6:['Уравнение можно только решить, а не упростить или разложить'],
 }
 # словарь озвучки результата
 REPLACE_TTS = {
@@ -221,7 +222,7 @@ REPLACE_TTS = {
     'y':'игрек',
     'pi':'пи',
     'E':'е',
-    'I':'число и',
+    'I':'число И',
     '\(':' открыть скобку ',
     '\)':' закрыть скобку ',
     'oo': 'бесконечность', 
@@ -369,6 +370,8 @@ class Processing:
         self.equation = find_replace_multi(self.equation, REPLACE_ACTIONS)
         # обработка составного числа с дробной частью (со словом целых)
         self.equation = re.sub(r'(\d+\)?) целых ([\d/]+)' , r'(\1+\2)', self.equation)
+        # обработка в степени с числовым показателем
+        self.equation = re.sub(r'в (\d+\)?) степени' , r'**\1', self.equation)
         # ставим скобки если остались
         self.brace_placement()  
         # ставим функции, если есть
@@ -496,22 +499,24 @@ class Processing:
 
     # Функция упрощения выражения
     def _simplify(self):
-        # Проверка на ошибки
-        if self.check_errors():
-            return
         # проверка равенства 
         if self.check_equality() == 1:
-            self._solve()
-        else:    
-            try:
-                self.answer = simplify(self.equation)
-                # Округляем
-                self.answer = rd(self.answer, CALC_PRECISION)
-            except Exception:
-                self.answer = 'Ошибка в выражении: ' + self.equation
+            self.error = 6
+        # Проверка на ошибки
+        if self.check_errors():
+            return 
+        try:
+            self.answer = simplify(self.equation)
+            # Округляем
+            self.answer = rd(self.answer, CALC_PRECISION)
+        except Exception:
+            self.answer = 'Ошибка в выражении: ' + self.equation
 
     # Функция разложения на множители
     def _factorize(self):
+        # проверка равенства 
+        if self.check_equality() == 1:
+            self.error = 6
         # Проверка на ошибки
         if self.check_errors():
             return  
