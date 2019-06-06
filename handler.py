@@ -600,6 +600,7 @@ def handle_dialog(req, res, user_storage):
     # данные о исходном сообщении
     user_message = req.original.lower().strip()
     user_message = clear_str(user_message)
+    user_tokens = req.tokens
 
     if not process.first_word:
         user_answer = 'Привет!\nЯ помогаю решать задачи по алгебре. Я понимаю выражения с переменными x, y или z.\n'+\
@@ -631,7 +632,7 @@ def handle_dialog(req, res, user_storage):
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
     # Знакомство
-    if user_message == 'как тебя зовут':
+    if 'тебя' in user_tokens and 'зовут' in user_tokens:
         res.set_text('Меня зовут Знайка. И я люблю считать.')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
@@ -647,24 +648,25 @@ def handle_dialog(req, res, user_storage):
         return res, user_storage
 
     # если похвалили
-    if process.first_word in [
+    if any(i in user_tokens for i in [
         'правильно',
-        'верно',
+        'хорошо',
         'красавчик',
         'молодец',
         'спасибо',
-    ]:
+    ]):
         # Благодарим пользователя
         res.set_text('Спасибо, я стараюсь!')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
 
     # если не согласны
-    if process.first_word in [
+    if any(i in user_tokens for i in [
         'неправильно',
         'неверно',
         'ошибка',
-    ]:
+        'что',
+    ]):
         # предлагаем повторить
         res.set_text('Возможно я не расслышал, попробуйте повторить.')
         res.set_buttons(user_storage['suggests'])
@@ -685,8 +687,8 @@ def handle_dialog(req, res, user_storage):
     # помощь юзеру и примеры
     if process.first_word in [
         'помощь',
+        'помощ',
         'помоги',
-        'что ты умеешь',
     ]:
         s = user_command.split(' ', 2)
         if len(s) == 1:
