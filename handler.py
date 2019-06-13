@@ -86,6 +86,7 @@ REPLACE_DIGITS = {
     'дважды':'2*',
     'трижды':'3*',
     'четырежды':'4*',
+    'икса':'x', 'игрека':'y', 
     'икс':'x', 'игрек':'y', 
     'игрик':'y', 
     'х':'x', 'у':'y', 
@@ -131,6 +132,7 @@ REPLACE_ACTIONS = {
     'x y':'x*y',
     'y x':'y*x',
     'равняется':'=',
+    'получается':'=',
     'равно':'=',
     'равен':'=',
     'равняет':'=',
@@ -422,6 +424,7 @@ class Processing:
         # Определяем число русских слов в выражении, для предположения что это задача
         if len(re.findall(r'[а-яё]+', self.equation, re.I)) > 7:
             self.answer = 'Похоже на условие задачи, я работаю только с алгебраическими выражениями.'
+            self.task = 'unknown'
             return
         # убираем оставшийся русский текст
         self.equation = re.sub('[а-яА-ЯёЁ]', '', self.equation).strip()
@@ -620,6 +623,7 @@ def handle_dialog(req, res, user_storage):
     # данные о исходном сообщении
     user_message = req.original.lower().strip()
     user_message = clear_str(user_message)
+    # токены
     user_tokens = req.tokens
 
     if not process.first_word:
@@ -635,12 +639,6 @@ def handle_dialog(req, res, user_storage):
         res.set_text('pong')
         user_storage['to_log'] = False
         return res, user_storage
-
-    # ответ на ругательства
-    if req.danger:
-        res.set_text('Давайте не будем ругаться!')
-        res.set_buttons(user_storage['suggests'])
-        return res, user_storage
     # ответ почему
     if user_message == 'почему':
         res.set_text('По правилам алгебры. Я вычисляю результат, а не рассказываю как решать.')
@@ -651,12 +649,21 @@ def handle_dialog(req, res, user_storage):
         res.set_text('На нет и суда нет. '+DEFAULT_ENDING)
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
+    # ответ на слово команда
+    if user_message == 'команда' or user_message == 'команду':
+        res.set_text('Я понимаю команды: ' + ', '.join(HELP_TEXTS) + '. Для помощи по командам скажите помощь и имя команды.')
+        res.set_buttons(user_storage['suggests'])
+        return res, user_storage
     # Знакомство
-    if 'тебя' in user_tokens and 'зовут' in user_tokens:
+    if 'как' in user_tokens and 'зовут' in user_tokens:
         res.set_text('Меня зовут Знайка. И я люблю считать.')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
-
+    # Просьба вернуть Алису
+    if 'алиса' in user_tokens:
+        res.set_text('Я не Алиса. Чтобы закончить скажите выйти или стоп.')
+        res.set_buttons(user_storage['suggests'])
+        return res, user_storage
     # переход по ссылке
     if process.first_word in [
         'решебник',
@@ -666,11 +673,11 @@ def handle_dialog(req, res, user_storage):
         res.set_text('Открываю ссылку')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
-
     # если похвалили
     if any(i in user_tokens for i in [
-        'правильно',
+        'верно',
         'хорошо',
+        'офигеть',
         'красавчик',
         'молодец',
         'спасибо',
@@ -679,23 +686,22 @@ def handle_dialog(req, res, user_storage):
         res.set_text('Спасибо, я стараюсь!')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
-
     # если не согласны
     if any(i in user_tokens for i in [
         'неправильно',
+        'неверный',
         'неверно',
         'ошибка',
-        'что',
     ]):
         # предлагаем повторить
         res.set_text('Возможно я не расслышал, попробуйте повторить.')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
-
     # всяко разное
     if process.first_word in [
         'привет',
         'ладно',
+        'здрасте',
         'пожалуйста',
         'да',
     ]:
@@ -703,7 +709,11 @@ def handle_dialog(req, res, user_storage):
         res.set_text('Ну '+process.first_word)
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
-
+# ответ на ругательства
+    if req.danger:
+        res.set_text('Давайте не будем ругаться!')
+        res.set_buttons(user_storage['suggests'])
+        return res, user_storage
     # помощь юзеру и примеры
     if process.first_word in [
         'помощь',
@@ -747,12 +757,14 @@ def handle_dialog(req, res, user_storage):
     if process.first_word in [
         'выйти',
         'стоп',
+        'хватит',
         'пока'
     ]:
         # Пользователь закончил, прощаемся.
         res.set_text('Приходите ещё, порешаем!')
         res.end()
         return res, user_storage
+
     # Обрабатываем основные запросы
     process.process()
     
