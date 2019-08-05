@@ -129,7 +129,6 @@ REPLACE_ACTIONS = {
     'делим':'/',
     '÷':'/',
     ':':'/',
-    ',':'.',
     'xy':'x*y',
     'yx':'y*x',
     'x y':'x*y',
@@ -393,6 +392,8 @@ class Processing:
         self.equation = find_replace_multi(self.equation, REPLACE_DIGITS, True)
         self.equation = find_replace_multi(self.equation, REPLACE_BRACE)
         self.equation = find_replace_multi(self.equation, REPLACE_ACTIONS)
+        # замена запятых в числах на точки
+        self.equation = re.sub(r'(\d),(\d)', r'\1.\2', self.equation)
         # обработка составного числа с дробной частью (со словом целых)
         self.equation = re.sub(r'(\d+\)?) целых ([\d/]+)' , r'(\1+\2)', self.equation)
         # обработка в степени с числовым показателем
@@ -403,9 +404,9 @@ class Processing:
         for func in REPLACE_FUNCTIONS.keys():
             self.equation = insert_function(func, REPLACE_FUNCTIONS[func], self.equation)
         # Заменяем i на I для корректной обработки мнимой единицы
-        self.equation = re.sub(r"\bi\b","I" ,self.equation)
+        self.equation = re.sub(r"\bi\b","I", self.equation)
         # Заменяем e на E для корректной обработки числа e
-        self.equation = re.sub(r"\be\b","E" ,self.equation)
+        self.equation = re.sub(r"\be\b","E", self.equation)
         # базовые проверки
         # проверка соответствия скобок
         if not self.check_pairing():
@@ -430,7 +431,7 @@ class Processing:
             self.task = 'unknown'
             return
         # убираем оставшийся русский текст
-        self.equation = re.sub('[а-яА-ЯёЁ]', '', self.equation).strip()
+        self.equation = re.sub('[а-яА-ЯёЁ,]', '', self.equation).strip()
         # если ничего не осталось то дефолтный ответ
         if self.equation == '':
             return
@@ -532,7 +533,9 @@ class Processing:
         if self.check_errors():
             return 
         try:
-            self.answer = simplify(self.equation)
+            self.equation = simplify(self.equation)
+            # дополнительно пробуем разложить на множители
+            self.answer = factor(self.equation)
             # Округляем
             self.answer = rd(self.answer, CALC_PRECISION)
         except Exception:
