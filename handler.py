@@ -606,7 +606,7 @@ def handle_dialog(req, res, user_storage):
             'suggests': [
             {'title': 'Помощь', 'hide': True},
             {
-                "title": "Решебник",
+                "title": "Сайт",
                 "url": "https://gdeze.ru",
                 "hide": True
             },
@@ -632,7 +632,7 @@ def handle_dialog(req, res, user_storage):
     # токены
     user_tokens = req.tokens
 
-    if not process.first_word:
+    if not process.first_word or process.first_word == 'запусти':
         user_answer = 'Привет!\nЯ помогаю решать уравнения и примеры по алгебре.\n'+\
         'Чтобы узнать подробнее скажите Помощь.'
         res.set_text(user_answer)
@@ -670,9 +670,14 @@ def handle_dialog(req, res, user_storage):
         res.set_text('Я не Алиса. Чтобы закончить скажите выйти или стоп.')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
+    # Просьба вернуть Марусю
+    if 'маруся' in user_tokens:
+        res.set_text('Я не Маруся. Чтобы закончить скажите выйти или стоп.')
+        res.set_buttons(user_storage['suggests'])
+        return res, user_storage
     # переход по ссылке
     if process.first_word in [
-        'решебник',
+        'сайт',
         'оценить',
     ]:
         # отвечаем аналогично
