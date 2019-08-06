@@ -632,7 +632,10 @@ def handle_dialog(req, res, user_storage):
     # токены
     user_tokens = req.tokens
 
-    if not process.first_word or process.first_word == 'запусти':
+    if not process.first_word or process.first_word in [
+        'запусти',
+        'включи',
+    ]: 
         user_answer = 'Привет!\nЯ помогаю решать уравнения и примеры по алгебре.\n'+\
         'Чтобы узнать подробнее скажите Помощь.'
         res.set_text(user_answer)
