@@ -105,6 +105,7 @@ REPLACE_ACTIONS = {
     'добавить':'+',  
     'прибавить':'+',  
     'отнять':'-', 
+    'отнимаем':'-', 
     'вычесть':'-', 
     'помноженное':'*',
     'помножить':'*',
@@ -201,6 +202,7 @@ REPLACE_BRACE = {
     'скобки':'скобка',
     'скобке':'скобка',
     'скобку':'скобка',
+    'скупку':'скобка',
     'скобочка':'скобка',
     'скобочки':'скобка',
     'скобочку':'скобка',
@@ -218,7 +220,7 @@ ERRORS = {
     1:['Нет выражения','Необходимо ввести выражение', 'Укажите выражение'],
     2:['Уравнение должно содержать только одну переменную x,y или z', 'В вашем уравнении больше одной неизвестной'],
     3:['Уравнение может содержать только один знак равенства', 'В вашем уравнении несколько знаков равенства'],
-    4:['В уравнении непарные скобки', 'Число отрывающихся скобок не равно числу закрывающихся'],
+    4:['В уравнении непарные скобки. Скажите помощь скобки', 'Число отрывающихся скобок не равно числу закрывающихся. Скажите помощь скобки'],
     5:['Уравнение должно содержать переменную x,y или z.', 'Похоже в вашем уравнении нет неизвестной', 'Я могу решать уравнения с x,y или z. Попробуйте перефразировать'],
     6:['Уравнение можно только решить, а не упростить или разложить'],
 }
@@ -399,6 +401,9 @@ class Processing:
         self.equation = re.sub(r'(\d+\)?) целых ([\d/]+)' , r'(\1+\2)', self.equation)
         # обработка в степени с числовым показателем
         self.equation = re.sub(r'в (\d+\)?) степени' , r'^\1', self.equation)
+        # удалим пунктуацию в конце строки
+        if self.equation.endswith(('.', '!', '?')):
+            self.equation = self.equation[:-1]
         # ставим скобки если остались
         self.brace_placement()  
         # ставим функции, если есть
@@ -633,10 +638,7 @@ def handle_dialog(req, res, user_storage):
     # токены
     user_tokens = req.tokens
 
-    if not process.first_word or process.first_word in [
-        'запусти',
-        'включи',
-    ]: 
+    if not process.first_word or req.is_new_session: 
         user_answer = 'Привет!\nЯ помогаю решать уравнения и примеры по алгебре.\n'+\
         'Чтобы узнать подробнее скажите Помощь.'
         res.set_text(user_answer)
@@ -670,12 +672,12 @@ def handle_dialog(req, res, user_storage):
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
     # Просьба вернуть Алису
-    if 'алиса' in user_tokens:
+    if 'алиса' in user_message:
         res.set_text('Я не Алиса. Чтобы закончить скажите выйти или стоп.')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
     # Просьба вернуть Марусю
-    if 'маруся' in user_tokens:
+    if 'маруся' in user_message:
         res.set_text('Я не Маруся. Чтобы закончить скажите выйти или стоп.')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
@@ -689,14 +691,14 @@ def handle_dialog(req, res, user_storage):
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
     # если похвалили
-    if any(i in user_tokens for i in [
+    if user_message in [
         'верно',
         'хорошо',
         'офигеть',
         'красавчик',
         'молодец',
         'спасибо',
-    ]):
+    ]:
         # Благодарим пользователя
         res.set_text('Спасибо, я стараюсь!')
         res.set_buttons(user_storage['suggests'])
@@ -734,6 +736,7 @@ def handle_dialog(req, res, user_storage):
         'помощь',
         'помочь',
         'помоги',
+        'умеешь',
     ]):
         s = user_command.split(' ', 2)
         if len(s) == 1:
@@ -774,7 +777,8 @@ def handle_dialog(req, res, user_storage):
         'выйти',
         'стоп',
         'хватит',
-        'пока'
+        'пока',
+        'on_interrupt',
     ]:
         # Пользователь закончил, прощаемся.
         res.set_text('Приходите ещё, порешаем!')
