@@ -638,19 +638,19 @@ def handle_dialog(req, res, user_storage):
     # токены
     user_tokens = req.tokens
 
+    # ответ яндекс боту
+    if user_message == 'ping':
+        res.set_text('pong')
+        user_storage['to_log'] = False
+        return res, user_storage
+
     if not process.first_word or req.is_new_session: 
         user_answer = 'Привет!\nЯ помогаю решать уравнения и примеры по алгебре.\n'+\
         'Чтобы узнать подробнее скажите Помощь.'
         res.set_text(user_answer)
         res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
         res.set_buttons(user_storage['suggests'])
-        return res, user_storage
-        
-    # ответ яндекс боту
-    if user_message == 'ping':
-        res.set_text('pong')
-        user_storage['to_log'] = False
-        return res, user_storage
+        return res, user_storage   
     # ответ почему
     if user_message == 'почему':
         res.set_text('По правилам алгебры. Я вычисляю результат, а не рассказываю как решать.')
