@@ -115,6 +115,7 @@ REPLACE_ACTIONS = {
     'умножаем':'*',
     'умножим':'*',
     'умножь':'*',
+    '·':'*',
     '×':'*',
     '−':'-',
     '–':'-',   
@@ -245,8 +246,8 @@ REPLACE_TTS = {
     'exp':'экспонента',
     'abs':'модуль',
     'LambertW':'W-функция Ламберта',
-    'x':'икс',
-    'y':'игрек',
+    'x':' икс',
+    'y':' игрек',
     'pi':'пи',
     'E':'е',
     'I':'число И',
@@ -272,25 +273,25 @@ REPLACE_LARGE_TTS = {
 # словарь примеров
 HELP_TEXTS = {
     'реши':['5x+12=7', 'Я могу решать уравнения с одной неизвестной x,y или z.\n' +\
-            'Для этого скажите команду Реши и продиктуйте уравнение или введите с клавиатуры.'],
-    'вычисли':['2^5*sqrt(16)', 'Я могу вычислять числовое значение выражения без переменных, для этого скажите команду Вычисли и продиктуйте выражение.'],
-    'упрости':['(2x-3y)(3y-2x)-12xy', 'Я могу упрощать алгебраические выражения, для этого скажите команду Упрости и продиктуйте выражение.'],
-    'разложи':['x^2 + 4xy + 4y^2', 'Я могу раскладывать на множители алгебраические выражения, для этого скажите команду Разложи и продиктуйте выражение.'],
+            'Для этого скажите Реши и продиктуйте уравнение или введите с клавиатуры.'],
+    'вычисли':['2^5*sqrt(16)', 'Я могу вычислять числовое значение выражения без переменных, для этого скажите Вычисли и продиктуйте выражение.'],
+    'упрости':['(2x-3y)(3y-2x)-12xy', 'Я могу упрощать алгебраические выражения, для этого скажите Упрости и продиктуйте выражение.'],
+    'разложи':['x^2 + 4xy + 4y^2', 'Я могу раскладывать на множители алгебраические выражения, для этого скажите Разложи и продиктуйте выражение.'],
 }
 # лишие слова, междометия
 UNNECESSARY_WORDS = ['давай', 'на', 'ну', 'а', 'и', 'из', 'от']
-# Команды решения
+# Запросы решения
 COMMAND_SOLV = ['реши', 'решить',  'решите', 'решение']
-# Команды упрощения
+# Запросы упрощения
 COMMAND_SIMPL = ['упрости', 'упростить', 'упростите', 'ну прости', 'прости', 'опусти', 'сократи']
-# Команды вычисления
+# Запросы вычисления
 COMMAND_CALC = ['вычисли', 'вычислить', 'сколько', 'найди']
-# Команды разложения на множители
+# Запросы разложения на множители
 COMMAND_FACT = ['разложи', 'разложить', 'разложение']
 # ответ на некорректный запрос
-DEFAULT_ANSWER = ['У меня нет ответа.', 'Я просто работаю с выражениями.', 'Этого я не понимаю.', 'Я не по этой части.', 'Я понимаю определенные команды.']
+DEFAULT_ANSWER = ['У меня нет ответа.', 'Я просто работаю с выражениями.', 'Этого я не понимаю.', 'Я не по этой части.', 'Я понимаю определенные запросы.']
 # побуждающая прибавка к тексту
-DEFAULT_ENDING = 'Назовите команду или скажите Помощь.'
+DEFAULT_ENDING = 'Назовите запрос или скажите Помощь.'
 # точность (число знаков) для округления
 CALC_PRECISION = 4
 
@@ -314,7 +315,8 @@ def find_replace_multi(string, dictionary, use_word = False):
             string = re.sub(pattern, r'{}'.format(dictionary[item]), string)
         else:
             string = re.sub(item, dictionary[item], string)
-
+    #удалим задвоенные пробелы
+    string = ' '.join(string.split())
     return str(string)
 
 # исходное выражение выбросим лишние слова
@@ -363,7 +365,7 @@ def insert_function(fpattern, fname, string):
 '''
 class Processing:
     def __init__(self, equation):
-        # выделяем первое слово в команде
+        # выделяем первое слово в запросе
         parts = equation.split(' ', 1)
         self.first_word = parts[0]
         # исходное выражение
@@ -593,7 +595,16 @@ class Processing:
     def check_errors(self):
         # проверка на наличие выражения
         if self.equation == '':
-            self.error = 1 
+            if self.task == 'solve':
+                command = 'реши'
+            elif self.task == 'calculate':
+                command = 'вычисли'
+            elif self.task == 'simplify':
+                command = 'упрости'
+            elif self.task == 'factorize':
+                command = 'разложи'
+            self.answer = HELP_TEXTS[command][1] + '\nНапример: ' + command + ' ' + HELP_TEXTS[command][0]
+            return True
         # Проверка на ошибки
         if bool(self.error):
             self.answer = random.choice(ERRORS[self.error])
@@ -626,7 +637,7 @@ def handle_dialog(req, res, user_storage):
 
     # Флаг добавления в логи
     user_storage['to_log'] = True
-    # данные о команде, убираем лишнее
+    # данные о запросе, убираем лишнее
     user_command = req.command.lower().replace('спроси знайка ответит', '').strip()
     # исходное выражение выбросим лишние слова
     user_command = clear_str(user_command)
@@ -646,9 +657,8 @@ def handle_dialog(req, res, user_storage):
 
     if not process.first_word or req.is_new_session: 
         user_answer = 'Привет!\nЯ помогаю решать уравнения и примеры по алгебре.\n'+\
-        'Чтобы узнать подробнее скажите Помощь.'
+        'Чтобы узнать подробнее скажите Помощь или Примеры.'
         res.set_text(user_answer)
-        res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
         res.set_buttons(user_storage['suggests'])
         return res, user_storage   
     # ответ почему
@@ -659,11 +669,6 @@ def handle_dialog(req, res, user_storage):
     # ответ нет
     if user_message == 'нет':
         res.set_text('На нет и суда нет. '+DEFAULT_ENDING)
-        res.set_buttons(user_storage['suggests'])
-        return res, user_storage
-    # ответ на слово команда
-    if user_message == 'команда' or user_message == 'команду':
-        res.set_text('Я понимаю команды: ' + ', '.join(HELP_TEXTS) + '. Для помощи по командам скажите помощь и имя команды.')
         res.set_buttons(user_storage['suggests'])
         return res, user_storage
     # Знакомство
@@ -692,6 +697,7 @@ def handle_dialog(req, res, user_storage):
         return res, user_storage
     # если похвалили
     if user_message in [
+        'правильно',
         'верно',
         'хорошо',
         'офигеть',
@@ -741,13 +747,11 @@ def handle_dialog(req, res, user_storage):
         s = user_command.split(' ', 2)
         if len(s) == 1:
             user_answer = 'Я умею решать уравнения с одной неизвестной x,y или z, упрощать и вычислять алгебраические выражения.\n'+\
-            'Я понимаю команды: ' + ', '.join(HELP_TEXTS) + ', дополненные алгебраическим выражением.\n'+ \
-            'Для помощи по командам скажите помощь и имя команды.\n'+ \
+            'Я понимаю запросы: ' + ', '.join(HELP_TEXTS) + ', дополненные алгебраическим выражением.\n'+ \
+            'Для примера запроса скажите Примеры.\n'+ \
             'Для помощи по вводу выражений со скобками скажите помощь скобки.\n'+ \
             'Для помощи по математическим функциям скажите помощь функции.\n'+ \
             'Чтобы закончить скажите выйти или стоп.'
-        elif s[1] in HELP_TEXTS:
-            user_answer = HELP_TEXTS[s[1]][1]+'\nНапример: '+ s[1] +' '+HELP_TEXTS[s[1]][0]
         elif any(i in user_tokens for i in [
             'скобки',
             'скобка',
@@ -764,15 +768,25 @@ def handle_dialog(req, res, user_storage):
             user_answer = 'Я понимаю тригонометрические функции, а также, корень, логарифм и экспонента.'
         else:
             user_answer = 'Уточните помощь по какому разделу вас интересует.\n'+\
-            'Для помощи по командам скажите помощь и имя команды.\n'+ \
+            'Для примера запроса скажите Примеры.\n'+ \
             'Для помощи по вводу выражений со скобками скажите помощь скобки.\n'+ \
             'Для помощи по математическим функциям скажите помощь функции.'
 
         res.set_text(user_answer)
-        res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
         res.set_buttons(user_storage['suggests'])
         return res, user_storage    
     
+    if process.first_word in [
+        'примеры',
+        'пример',
+    ]:
+        command, example = random.choice(list(HELP_TEXTS.items()))
+        user_answer = example[1]+'\nНапример: '+ command +' '+example[0]
+        res.set_text(user_answer)
+        res.set_tts(find_replace_multi(user_answer, REPLACE_TTS))
+        res.set_buttons(user_storage['suggests'])
+        return res, user_storage
+
     if process.first_word in [
         'выйти',
         'стоп',
@@ -794,7 +808,6 @@ def handle_dialog(req, res, user_storage):
         process.process()
 
     user_answer = str(random.choice(DEFAULT_ANSWER)+' '+DEFAULT_ENDING if process.answer is False else process.answer)
-
     res.set_text(user_answer)
     # озвучка результата
     tts = find_replace_multi(user_answer, REPLACE_TTS)
