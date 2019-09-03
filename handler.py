@@ -158,7 +158,6 @@ REPLACE_ACTIONS = {
     ' в десятой':'^10',   
     ' в степени':'^',
     ' факториал':'!',
-    '°':'',
 }
 # словарь замен функций
 REPLACE_FUNCTIONS = {
@@ -217,6 +216,10 @@ REPLACE_BRACE = {
     'закрыть скобка':')',
     'левая скобка':'(',
     'правая скобка':')',
+    '\{':'(',
+    '\}':')',
+    '\[':'(',
+    '\]':')',    
 }
 # словарь ошибок
 ERRORS = {
@@ -284,6 +287,8 @@ HELP_TEXTS = {
 }
 # лишие слова, междометия
 UNNECESSARY_WORDS = ['давай', 'на', 'ну', 'а', 'и', 'из', 'от']
+# лишие символы, мусор
+UNNECESSARY_SYMBOLS = ['°']
 # Запросы решения
 COMMAND_SOLV = ['реши', 'решить',  'решите', 'решение']
 # Запросы упрощения
@@ -315,10 +320,10 @@ def rd(x, prec=50):
 def find_replace_multi(string, dictionary, use_word = False):
     for item in dictionary.keys():
         if use_word:
-            pattern = r'\b({})\b'.format(item)
-            string = re.sub(pattern, r'{}'.format(dictionary[item]), string)
+            pattern = r'\b({})\b'.format(item)           
         else:
-            string = re.sub(item, dictionary[item], string)
+            pattern = r'{}'.format(item) 
+        string = re.sub(pattern, r'{}'.format(dictionary[item]), string)
     #удалим задвоенные пробелы
     string = ' '.join(string.split())
     return str(string)
@@ -327,6 +332,9 @@ def find_replace_multi(string, dictionary, use_word = False):
 def clear_str(string):
     for item in UNNECESSARY_WORDS:
         string = re.sub(r'\b{}\b'.format(item), '', string)
+    for item in UNNECESSARY_SYMBOLS:
+        string = re.sub(item, '', string)
+        
     return string.strip()
 # Вставка математиченской функции в строку
 def insert_function(fpattern, fname, string):
