@@ -640,8 +640,8 @@ def handle_dialog(req, res, user_storage):
                 "hide": True
             },
             {
-                "title": "Оценить",
-                "url": "https://dialogs.yandex.ru/store/skills/48b31fb4-areshkin-pomozhet-reshit-i-podschi",
+                "title": "Поддержать",
+                "url": "https://yasobe.ru/na/rewatel_uravnenii",
                 "hide": True
             }],
             "to_log": True
