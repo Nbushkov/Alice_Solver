@@ -701,7 +701,7 @@ def handle_dialog(req, res, user_storage):
     # переход по ссылке
     if process.first_word in [
         'сайт',
-        'оценить',
+        'поддержать',
     ]:
         # отвечаем аналогично
         res.set_text('Открываю ссылку')
