@@ -428,6 +428,8 @@ class Processing:
         self.equation = re.sub(r"\bi\b","I", self.equation)
         # Заменяем e на E для корректной обработки числа e
         self.equation = re.sub(r"\be\b","E", self.equation)
+        # убираем лишние плюсы и равенства (по краям)
+        self.equation = self.equation.strip('+= */').rstrip('-')
         # базовые проверки
         # проверка соответствия скобок
         if not self.check_pairing():
@@ -466,18 +468,15 @@ class Processing:
         self.equation = re.sub(r'\)\s*\(', r')*(', self.equation)
         # после скобки
         self.equation = re.sub(r'\)\s*([x,y,z,\d]){1}', r')*\1', self.equation)
-        # убираем лишние плюсы и равенства (по краям)
-        self.equation = self.equation.strip('+= */').rstrip('-')
         # если неясно, смотрим по переменным
         if self.task == 'unknown':
             var_num = self.check_unknown()
             if var_num == 1:
                 self.task = 'solve'
-            elif var_num == 0:
+            elif var_num == 0 and re.search(r"[A-Za-z]", self.equation) is None:
                 self.task = 'calculate'
             elif self.equation != '':
                 self.task = 'simplify'
-        
     # Функция для решения уравнения
     def _solve(self):
         eqn = self.check_equality()    
