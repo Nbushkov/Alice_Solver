@@ -98,6 +98,7 @@ REPLACE_DIGITS = {
     'пи':'pi',
     'е':'E', 
     'бесконечность':'oo', 
+    'целых':'.',
 }
 # словарь замен действий
 REPLACE_ACTIONS = {   
@@ -412,8 +413,6 @@ class Processing:
         self.equation = find_replace_multi(self.equation, REPLACE_ACTIONS)
         # замена запятых в числах на точки
         self.equation = re.sub(r'(\d),(\d)', r'\1.\2', self.equation)
-        # обработка составного числа с дробной частью (со словом целых)
-        self.equation = re.sub(r'(\d+\)?) целых ([\d/]+)' , r'(\1+\2)', self.equation)
         # обработка в степени с числовым показателем
         self.equation = re.sub(r'в (\d+\)?) степени' , r'^\1', self.equation)
         # удалим пунктуацию в конце строки
@@ -455,6 +454,8 @@ class Processing:
             return
         # убираем оставшийся русский текст
         self.equation = re.sub('[а-яА-ЯёЁ,]', '', self.equation).strip()
+        # убираем пробелы вокруг точки
+        self.equation = re.sub(r'\s+\.\s+' , '.', self.equation)
         # если ничего не осталось то дефолтный ответ
         if self.equation == '':
             return
@@ -473,7 +474,7 @@ class Processing:
             var_num = self.check_unknown()
             if var_num == 1:
                 self.task = 'solve'
-            elif var_num == 0 and re.search(r"[A-Za-z]", self.equation) is None:
+            elif var_num == 0:
                 self.task = 'calculate'
             elif self.equation != '':
                 self.task = 'simplify'
