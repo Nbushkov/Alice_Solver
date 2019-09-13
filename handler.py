@@ -427,8 +427,6 @@ class Processing:
         self.equation = re.sub(r"\bi\b","I", self.equation)
         # Заменяем e на E для корректной обработки числа e
         self.equation = re.sub(r"\be\b","E", self.equation)
-        # убираем лишние плюсы и равенства (по краям)
-        self.equation = self.equation.strip('+= */').rstrip('-')
         # базовые проверки
         # проверка соответствия скобок
         if not self.check_pairing():
@@ -454,6 +452,8 @@ class Processing:
             return
         # убираем оставшийся русский текст
         self.equation = re.sub('[а-яА-ЯёЁ,]', '', self.equation).strip()
+        # убираем лишние знаки (по краям)
+        self.equation = self.equation.strip('+= */').rstrip('-')
         # убираем пробелы вокруг точки
         self.equation = re.sub(r'\s+\.\s+' , '.', self.equation)
         # если ничего не осталось то дефолтный ответ
@@ -789,6 +789,7 @@ def handle_dialog(req, res, user_storage):
     if process.first_word in [
         'примеры',
         'пример',
+        'например',
     ]:
         command, example = random.choice(list(HELP_TEXTS.items()))
         user_answer = example[1]+'\nНапример: '+ command +' '+example[0]
