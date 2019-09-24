@@ -90,7 +90,6 @@ REPLACE_DIGITS = {
     'икса':'x', 'игрека':'y', 
     'икс':'x', 'игрек':'y', 
     'игрик':'y', 
-    'х':'x', 'у':'y', 
     'зет':'z', 'зед':'z', 'зэт':'z', 'зэд':'z', 
     'число пи':'pi',
     'число е':'E', 
@@ -133,10 +132,21 @@ REPLACE_ACTIONS = {
     '÷':'/',
     ':':'/',
     '\*\*':'^',
+    'xx':'x*x', 
+    'yy':'y*y',
+    'zz':'z*z',
     'xy':'x*y',
-    'yx':'y*x',
     'x y':'x*y',
+    'yx':'y*x',
     'y x':'y*x',
+    'xz':'x*z',
+    'x z':'x*z',
+    'zx':'z*x',
+    'z x':'z*x',
+    'zy':'z*y',
+    'z y':'z*y',
+    'yz':'y*z',
+    'y z':'y*z',
     'равняется':'=',
     'получается':'=',
     'равно':'=',
@@ -410,6 +420,10 @@ class Processing:
         # Замена слов в тексте на переменные и цифры
         self.equation = find_replace_multi(self.equation, REPLACE_DIGITS, True)
         self.equation = find_replace_multi(self.equation, REPLACE_BRACE)
+        # Заменяем отдельных русских букв х, у на x, y
+        self.equation = re.sub(r'([^а-яё])х([^а-яё])',r'\1x\2', self.equation)
+        self.equation = re.sub(r'([^а-яё])у([^а-яё])',r'\1y\2', self.equation)
+        # Замена действий
         self.equation = find_replace_multi(self.equation, REPLACE_ACTIONS)
         # замена запятых в числах на точки
         self.equation = re.sub(r'(\d),(\d)', r'\1.\2', self.equation)
@@ -424,9 +438,10 @@ class Processing:
         for func in REPLACE_FUNCTIONS.keys():
             self.equation = insert_function(func, REPLACE_FUNCTIONS[func], self.equation)
         # Заменяем i на I для корректной обработки мнимой единицы
-        self.equation = re.sub(r"\bi\b","I", self.equation)
+        self.equation = re.sub(r'\bi\b','I', self.equation)
         # Заменяем e на E для корректной обработки числа e
-        self.equation = re.sub(r"\be\b","E", self.equation)
+        self.equation = re.sub(r'\be\b','E', self.equation)
+
         # базовые проверки
         # проверка соответствия скобок
         if not self.check_pairing():
