@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import division
 from sympy import *
+import sympy.abc
 from mpmath  import *
 import random
 import sys
@@ -237,11 +238,10 @@ REPLACE_BRACE = {
 ERRORS = {
     0:['Нет ошибок'],
     1:['Нет выражения','Необходимо ввести выражение', 'Укажите выражение'],
-    2:['Уравнение должно содержать только одну переменную x,y или z', 'В вашем уравнении больше одной неизвестной'],
+    2:['Уравнение должно содержать только одну переменную', 'В вашем уравнении больше одной неизвестной'],
     3:['Уравнение может содержать только один знак равенства', 'В вашем уравнении несколько знаков равенства'],
     4:['В уравнении непарные скобки. Скажите помощь скобки', 'Число отрывающихся скобок не равно числу закрывающихся. Скажите помощь скобки'],
-    5:['Уравнение должно содержать переменную x,y или z.', 'Похоже в вашем уравнении нет неизвестной', 'Я могу решать уравнения с x,y или z. Попробуйте перефразировать'],
-    6:['Уравнение можно только решить, а не упростить или разложить'],
+    5:['Уравнение можно только решить, а не упростить или разложить'],
 }
 # словарь озвучки результата
 REPLACE_TTS = {
@@ -291,7 +291,7 @@ REPLACE_LARGE_TTS = {
 }
 # словарь примеров
 HELP_TEXTS = {
-    'реши':['5x+12=7', 'Я могу решать уравнения с одной неизвестной x,y или z.\n' +\
+    'реши':['5x+12=7', 'Я могу решать уравнения с одной неизвестной.\n' +\
             'Для этого скажите Реши и продиктуйте уравнение или введите с клавиатуры.'],
     'вычисли':['2^5*sqrt(16)', 'Я могу вычислять числовое значение выражения без переменных, для этого скажите Вычисли и продиктуйте выражение.'],
     'упрости':['(2x-3y)(3y-2x)-12xy', 'Я могу упрощать алгебраические выражения, для этого скажите Упрости и продиктуйте выражение.'],
@@ -421,8 +421,8 @@ class Processing:
         self.equation = find_replace_multi(self.equation, REPLACE_DIGITS, True)
         self.equation = find_replace_multi(self.equation, REPLACE_BRACE)
         # Заменяем отдельных русских букв х, у на x, y
-        self.equation = re.sub(r'([^а-яё])х([^а-яё])',r'\1x\2', self.equation)
-        self.equation = re.sub(r'([^а-яё])у([^а-яё])',r'\1y\2', self.equation)
+        self.equation = re.sub(r'([^а-яё]?)х([^а-яё])',r'\1x\2', self.equation)
+        self.equation = re.sub(r'([^а-яё]?)у([^а-яё])',r'\1y\2', self.equation)
         # Замена действий
         self.equation = find_replace_multi(self.equation, REPLACE_ACTIONS)
         # замена запятых в числах на точки
@@ -479,11 +479,11 @@ class Processing:
         # добавляем умножение после чисел
         self.equation = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', self.equation)
         # перед скобкой
-        self.equation = re.sub(r'([x,y,z])\s*\(', r'\1*(', self.equation)
+        self.equation = re.sub(r'(\b[a-z]{1}\b)\s*\(', r'\1*(', self.equation)
         # между скобками
         self.equation = re.sub(r'\)\s*\(', r')*(', self.equation)
         # после скобки
-        self.equation = re.sub(r'\)\s*([x,y,z,\d]){1}', r')*\1', self.equation)
+        self.equation = re.sub(r'\)\s*([a-z,\d]){1}', r')*\1', self.equation)
         # если неясно, смотрим по переменным
         if self.task == 'unknown':
             var_num = self.check_unknown()
@@ -500,8 +500,6 @@ class Processing:
         var_num = self.check_unknown()
         if var_num > 1:
             self.error = 2 
-        if var_num == 0 and eqn == 1:
-            self.error = 5
         # Проверка на ошибки
         if self.check_errors():
             return
@@ -514,7 +512,6 @@ class Processing:
             self.move()
         # пытаемся решить       
         try:
-            x, y, z = symbols('x y z')
             # сначала упростим чтоб не нагромождать
             self.equation = simplify(self.equation)
             # проверка на вырождение уравнения
@@ -536,7 +533,7 @@ class Processing:
                     for key, value in sol.items():
                         # проверка если слишком длинный ответ, вычисляем
                         if len(str(value)) > 40 or 'CRootOf' in str(value):
-                            value = value.evalf(CALC_PRECISION)
+                            value = value.evalf(CALC_PRECISION, chop=True)
                         # Округляем
                         value = rd(value, CALC_PRECISION)
                         res.append(str(key) + '=' + str(value))
@@ -552,7 +549,7 @@ class Processing:
             self._solve()
         else:    
             try:
-                self.answer = simplify(self.equation).evalf(prec)
+                self.answer = simplify(self.equation).evalf(prec, chop=True)
                 # Округляем
                 if prec == 50:
                     prec = 10
@@ -564,7 +561,7 @@ class Processing:
     def _simplify(self):
         # проверка равенства 
         if self.check_equality() == 1:
-            self.error = 6
+            self.error = 5
         # Проверка на ошибки
         if self.check_errors():
             return 
@@ -581,7 +578,7 @@ class Processing:
     def _factorize(self):
         # проверка равенства 
         if self.check_equality() == 1:
-            self.error = 6
+            self.error = 5
         # Проверка на ошибки
         if self.check_errors():
             return  
@@ -612,13 +609,9 @@ class Processing:
         return self.equation.count('(') == self.equation.count(')')
     # Проверка наличия неизвестной x,y или z
     def check_unknown(self):
-        # проверка наличия x
-        x_in = 'x' in self.equation
-        # проверка наличия y
-        y_in = 'y' in self.equation
-        # проверка наличия z
-        z_in = 'z' in self.equation
-        return int(x_in) + int(y_in) + int(z_in)
+        # подсчет отдельных латинских букв
+        unknown = re.findall(r'\b[a-z]{1}\b', self.equation)
+        return len (set(unknown))
     # Проверка наличия ошибок
     def check_errors(self):
         # проверка на наличие выражения
