@@ -422,10 +422,11 @@ class Processing:
         self.equation = find_replace_multi(self.equation, REPLACE_DIGITS, True)
         self.equation = find_replace_multi(self.equation, REPLACE_BRACE)
         # Заменяем отдельных русских букв х, у на x, y
-        self.equation = re.sub(r'([^а-яё]?)х([^а-яё])',r'\1x\2', self.equation)
-        self.equation = re.sub(r'([^а-яё]?)у([^а-яё])',r'\1y\2', self.equation)
+        self.equation = re.sub(r'([a-z\d\s^])х([a-z\d\s$])', r'\1x\2', self.equation)
+        self.equation = re.sub(r'([a-z\d\s^])у([a-z\d\s$])', r'\1y\2', self.equation)
         # Замена действий
         self.equation = find_replace_multi(self.equation, REPLACE_ACTIONS)
+
         # замена запятых в числах на точки
         self.equation = re.sub(r'(\d),(\d)', r'\1.\2', self.equation)
         # обработка в степени с числовым показателем
@@ -442,7 +443,6 @@ class Processing:
         self.equation = re.sub(r'\bi\b','I', self.equation)
         # Заменяем e на E для корректной обработки числа e
         self.equation = re.sub(r'\be\b','E', self.equation)
-
         # базовые проверки
         # проверка соответствия скобок
         if not self.check_pairing():
