@@ -422,8 +422,8 @@ class Processing:
         self.equation = find_replace_multi(self.equation, REPLACE_DIGITS, True)
         self.equation = find_replace_multi(self.equation, REPLACE_BRACE)
         # Заменяем отдельных русских букв х, у на x, y
-        self.equation = re.sub(r'([a-z\d\s^])х([a-z\d\s$])', r'\1x\2', self.equation)
-        self.equation = re.sub(r'([a-z\d\s^])у([a-z\d\s$])', r'\1y\2', self.equation)
+        self.equation = re.sub(r'([\W\d\s|^])х([\W\d\s|$])', r'\1x\2', self.equation)
+        self.equation = re.sub(r'([\W\d\s|^])у([\W\d\s|$])', r'\1y\2', self.equation)
         # Замена действий
         self.equation = find_replace_multi(self.equation, REPLACE_ACTIONS)
 
