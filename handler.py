@@ -677,7 +677,7 @@ def handle_dialog(req, res, user_storage):
         user_storage['to_log'] = False
         return res, user_storage
 
-    if not process.first_word or req.is_new_session: 
+    if not process.first_word or req.is_new_session or user_message == 'что ты умеешь':
         user_answer = 'Привет!\nЯ помогаю решать уравнения и примеры по алгебре.\n'+\
         'Чтобы узнать подробнее скажите Помощь или Примеры.'
         res.set_text(user_answer)
