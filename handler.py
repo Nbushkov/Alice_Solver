@@ -403,7 +403,6 @@ class Processing:
     # Главный обработчик
     def process(self):
         self._prepare()
-        print(self.equation)
         if self.task == 'solve':
             self._solve()
         elif self.task == 'calculate':
