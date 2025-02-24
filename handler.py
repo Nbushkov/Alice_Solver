@@ -475,7 +475,7 @@ class Processing:
         if self.equation == '':
             return
         # убираем пробелы между числами
-        self.equation = re.sub('(?<=\d)\s+(?=\d)', '', self.equation)
+        self.equation = re.sub(r'(?<=\d)\s+(?=\d)', '', self.equation)
         # добавляем умножение после чисел
         self.equation = re.sub(r'(\d+\)?)\s*([a-z(])' , r'\1*\2', self.equation)
         # перед скобкой
